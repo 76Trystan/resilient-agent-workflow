@@ -1,7 +1,19 @@
 {
+  "name": "cuppa-tea-temporal",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
   "devDependencies": {
-    "@vitejs/plugin-react": "^5.1.2",
-    "typescript": "^5.9.3",
-    "vite": "^7.3.1"
+    "typescript": "^5.x.x",
+    "vite": "^x.x.x",
+    "@vitejs/plugin-react": "^x.x.x"
   }
 }

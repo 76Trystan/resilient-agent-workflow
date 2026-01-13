@@ -1,5 +1,9 @@
+import { ManualProcessHandler } from './manual'
+import { DirectProcessHandler } from './direct'
+import { DirectTemporalProcessHandler } from './direct_temporal'
+
 // Dependency and Action Definitions
-const FUNCTIONS = [
+export const FUNCTIONS = [
     { name: 'selfGetCup', dependencies: [] },
     { name: 'kettleFill', dependencies: [] },
     { name: 'kettleTurnOn', dependencies: ['kettleFill'] },
@@ -17,7 +21,7 @@ const FUNCTIONS = [
     { name: 'selfTidyUp', dependencies: [] }
 ];
 
-const FUNCTION_ACTIONS = {
+export const FUNCTION_ACTIONS: Record<string, any> = {
     selfGetCup: { toggles: { toggleCupCounter: true } },
     kettleFill: { counters: { kettleCups: 1 } },
     kettleTurnOn: { toggles: { toggleSwitchedOn: true } },
@@ -36,19 +40,17 @@ const FUNCTION_ACTIONS = {
 };
 
 // Tea Process State Manager
-class TeaStateManager {
-    constructor() {
-        this.toggleIds = [
-            'toggleMilk', 'toggleSugar', 'toggleSalt', 'toggleCupCounter', 'toggleStirred',
-            'toggleMashed', 'toggleBoiled', 'toggleSwitchedOn', 'toggleObscured', 'toggleDrunk', 'toggleEmpty'
-        ];
-        this.counterIds = [
-            'hotWater', 'coldWater', 'teabag', 'sugar', 'milk', 'salt', 'kettleCups'
-        ];
-    }
+export class TeaStateManager {
+    toggleIds = [
+        'toggleMilk', 'toggleSugar', 'toggleSalt', 'toggleCupCounter', 'toggleStirred',
+        'toggleMashed', 'toggleBoiled', 'toggleSwitchedOn', 'toggleObscured', 'toggleDrunk', 'toggleEmpty'
+    ];
+    counterIds = [
+        'hotWater', 'coldWater', 'teabag', 'sugar', 'milk', 'salt', 'kettleCups'
+    ];
 
     getState() {
-        const state = {};
+        const state: Record<string, any> = {};
 
         this.toggleIds.forEach(id => {
             const element = document.getElementById(id);
@@ -57,7 +59,7 @@ class TeaStateManager {
 
         this.counterIds.forEach(id => {
             const element = document.getElementById(id);
-            state[id] = element ? parseInt(element.textContent) : 0;
+            state[id] = element ? parseInt(element.textContent || '0') : 0;
         });
 
         return state;
@@ -81,12 +83,10 @@ class TeaStateManager {
 }
 
 // Toggle Handler
-class ToggleHandler {
-    constructor(stateManager) {
-        this.stateManager = stateManager;
-    }
+export class ToggleHandler {
+    constructor(private stateManager: TeaStateManager) {}
 
-    toggle(id) {
+    toggle(id: string) {
         const element = document.getElementById(id);
         if (!element) return;
 
@@ -101,97 +101,99 @@ class ToggleHandler {
         }
     }
 
-    handleMilkToggle(element) {
+    private handleMilkToggle(element: HTMLElement) {
         if (element.classList.contains('active')) {
             this.incrementCounter('milk', 4);
         } else {
-            document.getElementById('milk').textContent = '0';
+            const milk = document.getElementById('milk');
+            if (milk) milk.textContent = '0';
         }
     }
 
-    handleSugarToggle(element) {
+    private handleSugarToggle(element: HTMLElement) {
         if (element.classList.contains('active')) {
             this.incrementCounter('sugar', 4);
         } else {
-            document.getElementById('sugar').textContent = '0';
+            const sugar = document.getElementById('sugar');
+            if (sugar) sugar.textContent = '0';
         }
     }
 
-    handleSaltToggle(element) {
+    private handleSaltToggle(element: HTMLElement) {
         if (element.classList.contains('active')) {
             this.incrementCounter('salt', 4);
         } else {
-            document.getElementById('salt').textContent = '0';
+            const salt = document.getElementById('salt');
+            if (salt) salt.textContent = '0';
         }
     }
 
-    incrementCounter(id, max) {
+    private incrementCounter(id: string, max: number) {
         const element = document.getElementById(id);
         if (!element) return;
 
-        let value = parseInt(element.textContent);
+        let value = parseInt(element.textContent || '0');
         if (value < max) {
-            element.textContent = value + 1;
+            element.textContent = (value + 1).toString();
         }
     }
 }
 
 // Counter Handler
-class CounterHandler {
-    increment(id, max) {
+export class CounterHandler {
+    increment(id: string, max: number) {
         const element = document.getElementById(id);
         if (!element) return;
 
-        let value = parseInt(element.textContent);
+        let value = parseInt(element.textContent || '0');
         if (value < max) {
-            element.textContent = value + 1;
+            element.textContent = (value + 1).toString();
         }
     }
 
-    decrement(id) {
+    decrement(id: string) {
         const element = document.getElementById(id);
         if (!element) return;
 
-        let value = parseInt(element.textContent);
+        let value = parseInt(element.textContent || '0');
         if (value > 0) {
-            element.textContent = value - 1;
+            element.textContent = (value - 1).toString();
         }
     }
 }
 
 // Event Manager
-class EventManager {
-    constructor(toggleHandler, counterHandler) {
-        this.toggleHandler = toggleHandler;
-        this.counterHandler = counterHandler;
-    }
+export class EventManager {
+    constructor(private toggleHandler: ToggleHandler, private counterHandler: CounterHandler) {}
 
     init() {
         this.attachToggleListeners();
         this.attachCounterListeners();
     }
 
-    attachToggleListeners() {
+    private attachToggleListeners() {
         const toggles = document.querySelectorAll('.toggle');
         toggles.forEach(toggle => {
             toggle.addEventListener('click', (e) => {
-                this.toggleHandler.toggle(e.target.id);
+                const target = e.target as HTMLElement;
+                this.toggleHandler.toggle(target.id);
             });
         });
     }
 
-    attachCounterListeners() {
+    private attachCounterListeners() {
         const buttons = document.querySelectorAll('.counter-btn');
         buttons.forEach(button => {
             button.addEventListener('click', (e) => {
-                const action = e.target.dataset.action;
-                const target = e.target.dataset.target;
-                const max = e.target.dataset.max;
+                const target = e.target as HTMLElement;
+                const action = target.dataset.action;
+                const targetId = target.dataset.target;
+                const max = target.dataset.max;
 
-                if (action === 'increment') {
-                    this.counterHandler.increment(target, parseInt(max));
-                } else if (action === 'decrement') {
-                    this.counterHandler.decrement(target);
+                if (action === 'increment' && targetId && max) {
+                    this.counterHandler.increment(targetId, parseInt(max));
+                } else if (action === 'decrement' && targetId) {
+                    this.counterHandler.decrement(targetId);
                 }
             });
         });
@@ -200,15 +202,20 @@ class EventManager {
 
 // Main Application
 class TeaProcessApp {
+    stateManager: TeaStateManager;
+    toggleHandler: ToggleHandler;
+    counterHandler: CounterHandler;
+    eventManager: EventManager;
+    completedFunctions: string[] = [];
+    manualProcessHandler: ManualProcessHandler | null = null;
+    directProcessHandler: DirectProcessHandler | null = null;
+    directTemporalProcessHandler: DirectTemporalProcessHandler | null = null;
+
     constructor() {
         this.stateManager = new TeaStateManager();
         this.toggleHandler = new ToggleHandler(this.stateManager);
         this.counterHandler = new CounterHandler();
         this.eventManager = new EventManager(this.toggleHandler, this.counterHandler);
-
-        this.completedFunctions = [];
-        this.manualProcessHandler = null;
-        this.directProcessHandler = null;
     }
 
     init() {
@@ -218,8 +225,10 @@ class TeaProcessApp {
         this.attachResetHandler();
     }
 
-    renderFunctionList() {
+    private renderFunctionList() {
         const functionList = document.getElementById('functionList');
+        if (!functionList) return;
+
         functionList.innerHTML = FUNCTIONS.map((fn, idx) => `
             <div class="function-item" data-function="${fn.name}">
                 <div class="function-name">${fn.name}</div>
@@ -228,79 +237,100 @@ class TeaProcessApp {
         `).join('');
     }
 
-    attachProcessSelectListener() {
-        const processSelect = document.getElementById('processSelect');
+    private attachProcessSelectListener() {
+        const processSelect = document.getElementById('processSelect') as HTMLSelectElement;
+        if (!processSelect) return;
+
         processSelect.addEventListener('change', (e) => {
-            if (e.target.value === 'manual') {
+            const value = (e.target as HTMLSelectElement).value;
+            if (value === 'manual') {
                 this.startManualProcess();
-            } else if (e.target.value === 'direct') {
+            } else if (value === 'direct') {
                 this.startDirectProcess();
+            } else if (value === 'direct_temporal') {
+                this.startDirectTemporalProcess();
             } else {
                 this.stopCurrentProcess();
             }
         });
     }
 
-    startManualProcess() {
-        // Initialize manual process handler if not already done
+    private startManualProcess() {
         if (!this.manualProcessHandler) {
             this.manualProcessHandler = new ManualProcessHandler(this.stateManager, this.completedFunctions);
             this.manualProcessHandler.init();
         }
 
-        // Reset and enable manual process
         this.resetProcessState();
         this.manualProcessHandler.enable();
     }
 
-    startDirectProcess() {
-        // Initialize direct process handler if not already done
+    private startDirectProcess() {
         if (!this.directProcessHandler) {
             this.directProcessHandler = new DirectProcessHandler(this.stateManager, this.completedFunctions);
             this.directProcessHandler.init();
         }
 
-        // Reset and enable direct process
         this.resetProcessState();
         this.directProcessHandler.enable();
     }
 
-    stopCurrentProcess() {
+    private startDirectTemporalProcess() {
+        if (!this.directTemporalProcessHandler) {
+            this.directTemporalProcessHandler = new DirectTemporalProcessHandler(this.stateManager, this.completedFunctions);
+            this.directTemporalProcessHandler.init();
+        }
+
+        this.resetProcessState();
+        this.directTemporalProcessHandler.enable();
+    }
+
+    private stopCurrentProcess() {
         if (this.manualProcessHandler) {
             this.manualProcessHandler.disable();
         }
         if (this.directProcessHandler) {
             this.directProcessHandler.disable();
         }
+        if (this.directTemporalProcessHandler) {
+            this.directTemporalProcessHandler.disable();
+        }
     }
 
-    resetProcessState() {
+    private resetProcessState() {
         this.completedFunctions.length = 0;
         document.querySelectorAll('.function-item').forEach(item => {
             item.classList.remove('highlight');
         });
     }
 
-    attachResetHandler() {
+    private attachResetHandler() {
         const resetBtn = document.getElementById('resetBtn');
-        if (resetBtn) {
-            resetBtn.addEventListener('click', () => {
-                this.stateManager.reset();
-                this.resetProcessState();
-                document.getElementById('processSelect').value = 'none';
-                document.getElementById('processMessage').classList.remove('active');
-                document.getElementById('stepBtn').style.display = 'none';
-                document.getElementById('startBtn').style.display = 'none';
-                document.getElementById('stopBtn').style.display = 'none';
+        if (!resetBtn) return;
 
-                if (this.manualProcessHandler) {
-                    this.manualProcessHandler.reset();
-                }
-                if (this.directProcessHandler) {
-                    this.directProcessHandler.reset();
-                }
-            });
-        }
+        resetBtn.addEventListener('click', () => {
+            this.stateManager.reset();
+            this.resetProcessState();
+            (document.getElementById('processSelect') as HTMLSelectElement).value = 'none';
+            const processMessage = document.getElementById('processMessage');
+            if (processMessage) processMessage.classList.remove('active');
+            const stepBtn = document.getElementById('stepBtn');
+            if (stepBtn) stepBtn.style.display = 'none';
+            const startBtn = document.getElementById('startBtn');
+            if (startBtn) startBtn.style.display = 'none';
+            const stopBtn = document.getElementById('stopBtn');
+            if (stopBtn) stopBtn.style.display = 'none';
+
+            if (this.manualProcessHandler) {
+                this.manualProcessHandler.reset();
+            }
+            if (this.directProcessHandler) {
+                this.directProcessHandler.reset();
+            }
+            if (this.directTemporalProcessHandler) {
+                this.directTemporalProcessHandler.reset();
+            }
+        });
     }
 
     getState() {
@@ -312,5 +342,5 @@ class TeaProcessApp {
 document.addEventListener('DOMContentLoaded', () => {
     const app = new TeaProcessApp();
     app.init();
-    window.teaApp = app;
+    (window as any).teaApp = app;
 });

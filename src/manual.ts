@@ -1,38 +1,40 @@
-// Manual Process Module
-class ManualProcessHandler {
-    constructor(stateManager, completedFunctions) {
-        this.stateManager = stateManager;
-        this.completedFunctions = completedFunctions;
-        this.currentStep = 0;
-    }
+import { FUNCTIONS, FUNCTION_ACTIONS, TeaStateManager } from './script'
+
+export class ManualProcessHandler {
+    private currentStep = 0;
+
+    constructor(
+        private stateManager: TeaStateManager,
+        private completedFunctions: string[]
+    ) {}
 
     init() {
         this.attachStepListener();
     }
 
-    attachStepListener() {
+    private attachStepListener() {
         const stepBtn = document.getElementById('stepBtn');
         if (stepBtn) {
             stepBtn.addEventListener('click', () => this.executeStep());
         }
     }
 
-    checkDependencies(functionName) {
+    private checkDependencies(functionName: string) {
         const func = FUNCTIONS.find(f => f.name === functionName);
         if (!func) return { valid: false, missing: [] };
 
-        const missing = [];
+        const missing: string[] = [];
         for (const dep of func.dependencies) {
             if (dep === 'toggleMilk') {
-                if (!document.getElementById('toggleMilk').classList.contains('active')) {
+                if (!document.getElementById('toggleMilk')?.classList.contains('active')) {
                     missing.push('Milk toggle must be ON');
                 }
             } else if (dep === 'toggleSugar') {
-                if (!document.getElementById('toggleSugar').classList.contains('active')) {
+                if (!document.getElementById('toggleSugar')?.classList.contains('active')) {
                     missing.push('Sugar toggle must be ON');
                 }
             } else if (dep === 'toggleSalt') {
-                if (!document.getElementById('toggleSalt').classList.contains('active')) {
+                if (!document.getElementById('toggleSalt')?.classList.contains('active')) {
                     missing.push('Salt toggle must be ON');
                 }
             } else if (!this.completedFunctions.includes(dep)) {
@@ -43,46 +45,43 @@ class ManualProcessHandler {
         return { valid: missing.length === 0, missing };
     }
 
-    executeStep() {
+    private executeStep() {
         if (this.currentStep >= FUNCTIONS.length) {
             this.showMessage('All steps completed!', 'success');
-            document.getElementById('stepBtn').disabled = true;
+            const stepBtn = document.getElementById('stepBtn') as HTMLButtonElement;
+            if (stepBtn) stepBtn.disabled = true;
             return;
         }
 
-        // Check if trying to drink from an empty cup
         const func_1 = FUNCTIONS[this.currentStep];
-        if (func_1.name === 'selfDrinkCup' && document.getElementById('toggleEmpty').classList.contains('active')) {
+        if (func_1.name === 'selfDrinkCup' && document.getElementById('toggleEmpty')?.classList.contains('active')) {
             this.showMessage('oh no cup empty', 'error');
             return;
         }
 
-        // Check if trying to mash tea with no teabag
-        if (func_1.name === 'cupMashTea' && parseInt(document.getElementById('teabag').textContent) === 0) {
+        if (func_1.name === 'cupMashTea' && parseInt(document.getElementById('teabag')?.textContent || '0') === 0) {
             this.showMessage('oh no there is no teabag', 'error');
             return;
         }
 
-        // Skip functions if their toggle conditions aren't met
         while (this.currentStep < FUNCTIONS.length) {
             const func = FUNCTIONS[this.currentStep];
 
-            // Check if function should be skipped
-            if (func.name === 'cupAddMilk' && !document.getElementById('toggleMilk').classList.contains('active')) {
+            if (func.name === 'cupAddMilk' && !document.getElementById('toggleMilk')?.classList.contains('active')) {
                 this.completedFunctions.push(func.name);
                 this.highlightFunction(func.name);
                 this.showMessage(`⊘ ${func.name} skipped (Milk not requested)`, 'success');
                 this.currentStep++;
                 continue;
             }
-            if (func.name === 'cupAddSugar' && !document.getElementById('toggleSugar').classList.contains('active')) {
+            if (func.name === 'cupAddSugar' && !document.getElementById('toggleSugar')?.classList.contains('active')) {
                 this.completedFunctions.push(func.name);
                 this.highlightFunction(func.name);
                 this.showMessage(`${func.name} skipped (Sugar not requested)`, 'success');
                 this.currentStep++;
                 continue;
             }
-            if (func.name === 'cupAddSalt' && !document.getElementById('toggleSalt').classList.contains('active')) {
+            if (func.name === 'cupAddSalt' && !document.getElementById('toggleSalt')?.classList.contains('active')) {
                 this.completedFunctions.push(func.name);
                 this.highlightFunction(func.name);
                 this.showMessage(`${func.name} skipped (Salt not requested)`, 'success');
@@ -90,13 +89,13 @@ class ManualProcessHandler {
                 continue;
             }
 
-            // If not skipped, break and execute
             break;
         }
 
         if (this.currentStep >= FUNCTIONS.length) {
             this.showMessage('All steps completed!', 'success');
-            document.getElementById('stepBtn').disabled = true;
+            const stepBtn = document.getElementById('stepBtn') as HTMLButtonElement;
+            if (stepBtn) stepBtn.disabled = true;
             return;
         }
 
@@ -108,7 +107,6 @@ class ManualProcessHandler {
             return;
         }
 
-        // Execute the function
         const actions = FUNCTION_ACTIONS[func.name];
         if (actions) {
             if (actions.toggles) {
@@ -128,9 +126,9 @@ class ManualProcessHandler {
                 for (const [counterId, delta] of Object.entries(actions.counters)) {
                     const el = document.getElementById(counterId);
                     if (el) {
-                        let value = parseInt(el.textContent);
-                        value = Math.max(0, value + delta);
-                        el.textContent = value;
+                        let value = parseInt(el.textContent || '0');
+                        value = Math.max(0, value + (delta as number));
+                        el.textContent = value.toString();
                     }
                 }
             }
@@ -142,20 +140,24 @@ class ManualProcessHandler {
         this.currentStep++;
 
         if (this.currentStep >= FUNCTIONS.length) {
-            document.getElementById('stepBtn').disabled = true;
+            const stepBtn = document.getElementById('stepBtn') as HTMLButtonElement;
+            if (stepBtn) stepBtn.disabled = true;
         }
     }
 
-    highlightFunction(functionName) {
-        document.querySelectorAll('.function-item').forEach(item => {
-            if (item.dataset.function === functionName) {
-                item.classList.add('highlight');
-            }
-        });
-    }
+    private highlightFunction(functionName: string) {
+    document.querySelectorAll('.function-item').forEach(item => {
+        const element = item as HTMLElement;
+        if (element.dataset.function === functionName) {
+            element.classList.add('highlight');
+        }
+    });
+}
 
-    showMessage(text, type) {
+    private showMessage(text: string, type: 'error' | 'success' | 'process-info') {
         const messageDiv = document.getElementById('processMessage');
+        if (!messageDiv) return;
+
         messageDiv.textContent = text;
         messageDiv.classList.add('active');
 
@@ -174,14 +176,14 @@ class ManualProcessHandler {
         document.querySelectorAll('.function-item').forEach(item => {
             item.classList.remove('highlight');
         });
-        document.getElementById('stepBtn').disabled = false;
+        const stepBtn = document.getElementById('stepBtn') as HTMLButtonElement;
+        if (stepBtn) stepBtn.disabled = false;
         this.showMessage('Ready to start. Set Tea Requests and click Next Step.', 'process-info');
     }
 
     enable() {
         const stepBtn = document.getElementById('stepBtn');
-        const processMessage = document.getElementById('processMessage');
-        stepBtn.style.display = 'block';
+        if (stepBtn) stepBtn.style.display = 'block';
         this.reset();
         this.showMessage('Ready to start. Set Tea Requests and click Next Step.', 'process-info');
     }
@@ -189,7 +191,7 @@ class ManualProcessHandler {
     disable() {
         const stepBtn = document.getElementById('stepBtn');
         const processMessage = document.getElementById('processMessage');
-        stepBtn.style.display = 'none';
-        processMessage.classList.remove('active');
+        if (stepBtn) stepBtn.style.display = 'none';
+        if (processMessage) processMessage.classList.remove('active');
     }
 }
