@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cuppa Tea Example Process</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            height: 100vh;
+            gap: 10px;
+            padding: 10px;
+        }
+
+        .section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .section h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .section h3 {
+            font-size: 14px;
+            margin-top: 15px;
+            margin-bottom: 10px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        .dropdown {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .toggle-group {
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toggle-label {
+            font-size: 14px;
+            color: #666;
+            min-width: 150px;
+            flex-shrink: 0;
+        }
+
+        .toggle {
+            width: 50px;
+            height: 24px;
+            background: #ccc;
+            border-radius: 12px;
+            cursor: pointer;
+            position: relative;
+            transition: background 0.3s;
+        }
+
+        .toggle.active {
+            background: #4CAF50;
+        }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: left 0.3s;
+        }
+
+        .toggle.active::after {
+            left: 28px;
+        }
+
+        .function-item {
+            background: #f9f9f9;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            border-left: 3px solid #2196F3;
+        }
+
+        .function-item.highlight {
+            border-left-color: #ff9800;
+            background: #fff8f0;
+        }
+
+        .function-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .function-desc {
+            font-size: 12px;
+            color: #888;
+            line-height: 1.4;
+        }
+
+        .counter-group {
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .counter-label {
+            font-size: 14px;
+            color: #666;
+            min-width: 150px;
+            flex-shrink: 0;
+        }
+
+        .counter-buttons {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .counter-btn {
+            width: 28px;
+            height: 28px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .counter-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .counter-value {
+            min-width: 25px;
+            text-align: center;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .reset-btn, .step-btn, .start-btn, .stop-btn {
+            width: 100%;
+            padding: 12px;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            margin-top: 10px;
+            transition: background 0.2s;
+        }
+
+        .reset-btn {
+            background: #ff6b6b;
+        }
+
+        .reset-btn:hover {
+            background: #ee5a52;
+        }
+
+        .step-btn, .start-btn {
+            background: #2196F3;
+            display: none;
+        }
+
+        .step-btn:hover, .start-btn:hover {
+            background: #0b7dda;
+        }
+
+        .step-btn:disabled, .start-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .stop-btn {
+            background: #ff6b6b;
+            display: none;
+        }
+
+        .stop-btn:hover {
+            background: #ee5a52;
+        }
+
+        .stop-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            border-left: 3px solid #c62828;
+        }
+
+        .success-message {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            border-left: 3px solid #2e7d32;
+        }
+
+        .process-info {
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            border-left: 3px solid #1565c0;
+        }
+
+        .message {
+            display: none;
+        }
+
+        .message.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Section 1: Tea Requests -->
+        <div class="section">
+            <h2>Tea Requests</h2>
+            <div class="toggle-group">
+                <span class="toggle-label">Milk</span>
+                <div class="toggle" id="toggleMilk"></div>
+            </div>
+            <div class="toggle-group">
+                <span class="toggle-label">Sugar</span>
+                <div class="toggle" id="toggleSugar"></div>
+            </div>
+            <div class="toggle-group">
+                <span class="toggle-label">Salt</span>
+                <div class="toggle" id="toggleSalt"></div>
+            </div>
+        </div>
+
+        <!-- Section 2: Process Selection -->
+        <div class="section">
+            <h2>Process</h2>
+            <select class="dropdown" id="processSelect">
+                <option value="none">Select Process</option>
+                <option value="manual">Manual Process</option>
+                <option value="direct">Direct Process</option>
+            </select>
+            <div id="processMessage" class="message process-info"></div>
+            <button class="step-btn" id="stepBtn">Next Step</button>
+            <button class="start-btn" id="startBtn">Start</button>
+            <button class="stop-btn" id="stopBtn">Stop</button>
+        </div>
+
+        <!-- Section 3: Function Tools -->
+        <div class="section">
+            <h2>Function Tools</h2>
+            <div id="functionList"></div>
+        </div>
+
+        <!-- Section 4: Tea State Management -->
+        <div class="section">
+            <h3>Cup</h3>
+            <div class="toggle-group">
+                <span class="toggle-label">Cup on Counter</span>
+                <div class="toggle" id="toggleCupCounter"></div>
+            </div>
+            <div class="counter-group">
+                <span class="counter-label">Hot Water</span>
+                <div class="counter-buttons">
+                    <button class="counter-btn" data-action="decrement" data-target="hotWater">−</button>
+                    <span class="counter-value" id="hotWater">0</span>
+                    <button class="counter-btn" data-action="increment" data-target="hotWater" data-max="4">+</button>
+                </div>
+            </div>
+            <div class="counter-group">
+                <span class="counter-label">Cold Water</span>
+                <div class="counter-buttons">
+                    <button class="counter-btn" data-action="decrement" data-target="coldWater">−</button>
+                    <span class="counter-value" id="coldWater">0</span>
+                    <button class="counter-btn" data-action="increment" data-target="coldWater" data-max="4">+</button>
+                </div>
+            </div>
+            <div class="counter-group">
+                <span class="counter-label">Teabag</span>
+                <div class="counter-buttons">
+                    <button class="counter-btn" data-action="decrement" data-target="teabag">−</button>
+                    <span class="counter-value" id="teabag">0</span>
+                    <button class="counter-btn" data-action="increment" data-target="teabag" data-max="4">+</button>
+                </div>
+            </div>
+            <div class="counter-group">
+                <span class="counter-label">Sugar</span>
+                <div class="counter-buttons">
+                    <button class="counter-btn" data-action="decrement" data-target="sugar">−</button>
+                    <span class="counter-value" id="sugar">0</span>
+                    <button class="counter-btn" data-action="increment" data-target="sugar" data-max="4">+</button>
+                </div>
+            </div>
+            <div class="counter-group">
+                <span class="counter-label">Milk</span>
+                <div class="counter-buttons">
+                    <button class="counter-btn" data-action="decrement" data-target="milk">−</button>
+                    <span class="counter-value" id="milk">0</span>
+                    <button class="counter-btn" data-action="increment" data-target="milk" data-max="4">+</button>
+                </div>
+            </div>
+            <div class="counter-group">
+                <span class="counter-label">Salt</span>
+                <div class="counter-buttons">
+                    <button class="counter-btn" data-action="decrement" data-target="salt">−</button>
+                    <span class="counter-value" id="salt">0</span>
+                    <button class="counter-btn" data-action="increment" data-target="salt" data-max="4">+</button>
+                </div>
+            </div>
+            <div class="toggle-group">
+                <span class="toggle-label">Contents Stirred</span>
+                <div class="toggle" id="toggleStirred"></div>
+            </div>
+            <div class="toggle-group">
+                <span class="toggle-label">Tea Mashed</span>
+                <div class="toggle" id="toggleMashed"></div>
+            </div>
+
+            <h3>Kettle</h3>
+            <div class="counter-group">
+                <span class="counter-label">Contains Cups</span>
+                <div class="counter-buttons">
+                    <button class="counter-btn" data-action="decrement" data-target="kettleCups">−</button>
+                    <span class="counter-value" id="kettleCups">0</span>
+                    <button class="counter-btn" data-action="increment" data-target="kettleCups" data-max="4">+</button>
+                </div>
+            </div>
+            <div class="toggle-group">
+                <span class="toggle-label">Water Boiled</span>
+                <div class="toggle" id="toggleBoiled"></div>
+            </div>
+            <div class="toggle-group">
+                <span class="toggle-label">Switched On</span>
+                <div class="toggle" id="toggleSwitchedOn"></div>
+            </div>
+            <div class="toggle-group">
+                <span class="toggle-label">Information Obscured</span>
+                <div class="toggle" id="toggleObscured"></div>
+            </div>
+
+            <h3>Self</h3>
+            <div class="toggle-group">
+                <span class="toggle-label">Have Drunk Tea</span>
+                <div class="toggle" id="toggleDrunk"></div>
+            </div>
+            <div class="toggle-group">
+                <span class="toggle-label">Have Emptied</span>
+                <div class="toggle" id="toggleEmpty"></div>
+            </div>
+
+            <button class="reset-btn" id="resetBtn">Reset State</button>
+        </div>
+    </div>
+
+    <script src="manual.js"></script>
+    <script src="direct.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
