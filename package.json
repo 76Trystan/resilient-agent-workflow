@@ -12,8 +12,11 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@vitejs/plugin-react": "^x.x.x",
     "typescript": "^5.x.x",
-    "vite": "^x.x.x",
-    "@vitejs/plugin-react": "^x.x.x"
+    "vite": "^x.x.x"
+  },
+  "dependencies": {
+    "@temporalio/client": "^1.14.1"
   }
 }
