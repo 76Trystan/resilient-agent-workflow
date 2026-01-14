@@ -1,7 +1,7 @@
 // update script to match new temporal structure
 import { ManualProcessHandler } from './processes/manual'
 import { DirectProcessHandler } from './processes/direct'
-import { DirectTemporalProcessHandler } from './processes/direct_temporal'
+import { DirectTemporalProcessHandler } from './temporal_direct_workflow/direct_temporal'
 
 // Dependency and Action Definitions
 export const FUNCTIONS = [
