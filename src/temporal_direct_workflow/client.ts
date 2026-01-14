@@ -86,3 +86,5 @@ class BrowserTemporalClient {
 }
 
 export const temporalClient = new BrowserTemporalClient();
+
+//     console.log('========== Temporal client connected ==========');

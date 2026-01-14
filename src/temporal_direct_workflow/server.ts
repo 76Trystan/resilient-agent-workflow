@@ -12,6 +12,19 @@ interface WorkflowInput {
 const app = express();
 app.use(express.json());
 
+// Enable CORS for browser requests
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
+
 let client: Client | null = null;
 const workflowHandles = new Map<string, any>();
 
@@ -20,8 +33,7 @@ async function initializeClient() {
   try {
     const connection = await Connection.connect({ address: 'localhost:7233' });
     client = new Client({ connection });
-    console.log('========== Temporal client connected ==========');
-  } catch (error) {
+    console.log('========== Temporal client connected ==========');  } catch (error) {
     console.error('Failed to connect to Temporal:', error);
   }
 }
