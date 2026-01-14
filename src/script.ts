@@ -1,7 +1,7 @@
-// update script to match new temporal structure
 import { ManualProcessHandler } from './processes/manual'
 import { DirectProcessHandler } from './processes/direct'
 import { DirectTemporalProcessHandler } from './temporal_direct_workflow/direct_temporal'
+import { temporalClient } from './temporal_direct_workflow/client'
 
 // Dependency and Action Definitions
 export const FUNCTIONS = [
@@ -211,12 +211,25 @@ class TeaProcessApp {
     manualProcessHandler: ManualProcessHandler | null = null;
     directProcessHandler: DirectProcessHandler | null = null;
     directTemporalProcessHandler: DirectTemporalProcessHandler | null = null;
+    temporalClientReady = false;
 
     constructor() {
         this.stateManager = new TeaStateManager();
         this.toggleHandler = new ToggleHandler(this.stateManager);
         this.counterHandler = new CounterHandler();
         this.eventManager = new EventManager(this.toggleHandler, this.counterHandler);
+        this.initTemporalClient();
+    }
+
+    private async initTemporalClient() {
+        try {
+            await temporalClient.connect();
+            this.temporalClientReady = true;
+            console.log('Temporal client connected');
+        } catch (error) {
+            console.warn('Temporal client failed to connect. Temporal workflows may not be available:', error);
+            // App continues to work, just without temporal features
+        }
     }
 
     init() {
@@ -249,7 +262,12 @@ class TeaProcessApp {
             } else if (value === 'direct') {
                 this.startDirectProcess();
             } else if (value === 'direct_temporal') {
-                this.startDirectTemporalProcess();
+                if (this.temporalClientReady) {
+                    this.startDirectTemporalProcess();
+                } else {
+                    alert('Temporal client not connected. Please ensure Temporal server is running.');
+                    (e.target as HTMLSelectElement).value = 'none';
+                }
             } else {
                 this.stopCurrentProcess();
             }

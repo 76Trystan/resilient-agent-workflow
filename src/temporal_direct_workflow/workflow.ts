@@ -3,7 +3,6 @@ import {
   defineSignal,
   setHandler,
   sleep,
-  WorkflowExecutionAlreadyStartedError
 } from '@temporalio/workflow';
 import type { Activities } from './activities';
 
@@ -12,9 +11,9 @@ const activities = proxyActivities<Activities>({
 });
 
 // Define signals
-export const pauseSignal = defineSignal<void>('pause');
-export const resumeSignal = defineSignal<void>('resume');
-export const stopSignal = defineSignal<void>('stop');
+export const pauseSignal = defineSignal('pause');
+export const resumeSignal = defineSignal('resume');
+export const stopSignal = defineSignal('stop');
 
 export interface WorkflowInput {
   hasMilk: boolean;
