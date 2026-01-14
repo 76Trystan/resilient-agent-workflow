@@ -223,11 +223,15 @@ class TeaProcessApp {
 
     private async initTemporalClient() {
         try {
-            await temporalClient.connect();
-            this.temporalClientReady = true;
-            console.log('Temporal client connected');
+            const isConnected = await temporalClient.checkConnection();
+            this.temporalClientReady = isConnected;
+            if (isConnected) {
+                console.log('Temporal server connected');
+            } else {
+                console.warn('Temporal server not available. Temporal workflows may not work.');
+            }
         } catch (error) {
-            console.warn('Temporal client failed to connect. Temporal workflows may not be available:', error);
+            console.warn('Failed to check Temporal connection:', error);
             // App continues to work, just without temporal features
         }
     }

@@ -1,5 +1,14 @@
-import { Connection, Client } from '@temporalio/client';
-import { teaMakingWorkflow, WorkflowInput, WorkflowOutput } from './workflow';
+export interface WorkflowInput {
+  hasMilk: boolean;
+  hasSugar: boolean;
+  hasSalt: boolean;
+  teabagCount: number;
+}
+
+export interface WorkflowOutput {
+  completedFunctions: string[];
+  status: 'completed' | 'stopped';
+}
 
 export interface WorkflowHandle {
   workflowId: string;
@@ -8,43 +17,72 @@ export interface WorkflowHandle {
   terminate: () => Promise<void>;
 }
 
-class TemporalClient {
-  private client: Client | null = null;
+class BrowserTemporalClient {
+  private apiUrl = 'http://localhost:3000/api';
 
-  async connect(): Promise<void> {
-    const connection = await Connection.connect({ address: 'localhost:7233' });
-    this.client = new Client({ connection });
+  async checkConnection(): Promise<boolean> {
+    try {
+      const response = await fetch(`${this.apiUrl}/health`);
+      const data = await response.json();
+      return data.temporalConnected;
+    } catch {
+      return false;
+    }
   }
 
   async startWorkflow(input: WorkflowInput): Promise<WorkflowHandle> {
-    if (!this.client) {
-      throw new Error('Client not connected');
+    const response = await fetch(`${this.apiUrl}/workflow/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to start workflow');
     }
 
-    const workflowId = `tea-workflow-${Date.now()}`;
-
-    const handle = await this.client.workflow.start(teaMakingWorkflow, {
-      args: [input],
-      taskQueue: 'tea-making',
-      workflowId,
-    });
+    const { workflowId } = await response.json();
 
     return {
       workflowId,
       signal: async (signal: string) => {
-        const workflowHandle = this.client!.workflow.getHandle(workflowId);
-        await workflowHandle.signal(signal);
+        // Signals not implemented in REST API
+        console.log(`Signal '${signal}' not yet implemented in HTTP API`);
       },
       result: async () => {
-        const workflowHandle = this.client!.workflow.getHandle(workflowId);
-        return await workflowHandle.result();
+        // Poll for result
+        return new Promise((resolve, reject) => {
+          const poll = async () => {
+            try {
+              const res = await fetch(`${this.apiUrl}/workflow/${workflowId}/result`);
+              
+              if (res.ok) {
+                const data = await res.json();
+                resolve(data);
+              } else if (res.status === 202) {
+                // Still running, poll again in 500ms
+                setTimeout(poll, 500);
+              } else {
+                reject(new Error('Failed to get workflow result'));
+              }
+            } catch (error) {
+              reject(error);
+            }
+          };
+          poll();
+        });
       },
       terminate: async () => {
-        const workflowHandle = this.client!.workflow.getHandle(workflowId);
-        await workflowHandle.terminate();
+        const response = await fetch(`${this.apiUrl}/workflow/${workflowId}/terminate`, {
+          method: 'POST',
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to terminate workflow');
+        }
       },
     };
   }
 }
 
-export const temporalClient = new TemporalClient();
+export const temporalClient = new BrowserTemporalClient();
