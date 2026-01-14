@@ -1,9 +1,7 @@
-import { FUNCTIONS, FUNCTION_ACTIONS, TeaStateManager } from './script'
+import { FUNCTIONS, FUNCTION_ACTIONS, TeaStateManager } from '../script'
 
-export class DirectProcessHandler {
+export class ManualProcessHandler {
     private currentStep = 0;
-    private isRunning = false;
-    private interval: number | null = null;
 
     constructor(
         private stateManager: TeaStateManager,
@@ -11,53 +9,14 @@ export class DirectProcessHandler {
     ) {}
 
     init() {
-        this.attachStartListener();
-        this.attachStopListener();
+        this.attachStepListener();
     }
 
-    private attachStartListener() {
-        const startBtn = document.getElementById('startBtn');
-        if (startBtn) {
-            startBtn.addEventListener('click', () => this.start());
+    private attachStepListener() {
+        const stepBtn = document.getElementById('stepBtn');
+        if (stepBtn) {
+            stepBtn.addEventListener('click', () => this.executeStep());
         }
-    }
-
-    private attachStopListener() {
-        const stopBtn = document.getElementById('stopBtn');
-        if (stopBtn) {
-            stopBtn.addEventListener('click', () => this.stop());
-        }
-    }
-
-    private start() {
-        if (this.isRunning) return;
-
-        this.isRunning = true;
-        const startBtn = document.getElementById('startBtn') as HTMLButtonElement;
-        const stopBtn = document.getElementById('stopBtn') as HTMLButtonElement;
-        if (startBtn) startBtn.disabled = true;
-        if (stopBtn) stopBtn.disabled = false;
-        this.showMessage('Starting direct process...', 'process-info');
-
-        this.interval = window.setInterval(() => {
-            this.executeStep();
-        }, 1000);
-    }
-
-    stop() {
-        this.isRunning = false;
-        if (this.interval) {
-            clearInterval(this.interval);
-            this.interval = null;
-        }
-
-        this.stateManager.reset();
-        this.resetProcessState();
-        const startBtn = document.getElementById('startBtn') as HTMLButtonElement;
-        const stopBtn = document.getElementById('stopBtn') as HTMLButtonElement;
-        if (startBtn) startBtn.disabled = false;
-        if (stopBtn) stopBtn.disabled = true;
-        this.showMessage('Direct process stopped and reset.', 'error');
     }
 
     private checkDependencies(functionName: string) {
@@ -89,28 +48,19 @@ export class DirectProcessHandler {
     private executeStep() {
         if (this.currentStep >= FUNCTIONS.length) {
             this.showMessage('All steps completed!', 'success');
-            this.isRunning = false;
-            if (this.interval) {
-                clearInterval(this.interval);
-                this.interval = null;
-            }
-            const startBtn = document.getElementById('startBtn') as HTMLButtonElement;
-            const stopBtn = document.getElementById('stopBtn') as HTMLButtonElement;
-            if (startBtn) startBtn.disabled = false;
-            if (stopBtn) stopBtn.disabled = true;
+            const stepBtn = document.getElementById('stepBtn') as HTMLButtonElement;
+            if (stepBtn) stepBtn.disabled = true;
             return;
         }
 
         const func_1 = FUNCTIONS[this.currentStep];
         if (func_1.name === 'selfDrinkCup' && document.getElementById('toggleEmpty')?.classList.contains('active')) {
             this.showMessage('oh no cup empty', 'error');
-            this.stop();
             return;
         }
 
         if (func_1.name === 'cupMashTea' && parseInt(document.getElementById('teabag')?.textContent || '0') === 0) {
             this.showMessage('oh no there is no teabag', 'error');
-            this.stop();
             return;
         }
 
@@ -144,15 +94,8 @@ export class DirectProcessHandler {
 
         if (this.currentStep >= FUNCTIONS.length) {
             this.showMessage('All steps completed!', 'success');
-            this.isRunning = false;
-            if (this.interval) {
-                clearInterval(this.interval);
-                this.interval = null;
-            }
-            const startBtn = document.getElementById('startBtn') as HTMLButtonElement;
-            const stopBtn = document.getElementById('stopBtn') as HTMLButtonElement;
-            if (startBtn) startBtn.disabled = false;
-            if (stopBtn) stopBtn.disabled = true;
+            const stepBtn = document.getElementById('stepBtn') as HTMLButtonElement;
+            if (stepBtn) stepBtn.disabled = true;
             return;
         }
 
@@ -161,7 +104,6 @@ export class DirectProcessHandler {
 
         if (!depCheck.valid) {
             this.showMessage(`Error: dependency required: ${depCheck.missing.join(', ')}`, 'error');
-            this.stop();
             return;
         }
 
@@ -196,6 +138,11 @@ export class DirectProcessHandler {
         this.highlightFunction(func.name);
         this.showMessage(`✓ ${func.name} completed`, 'success');
         this.currentStep++;
+
+        if (this.currentStep >= FUNCTIONS.length) {
+            const stepBtn = document.getElementById('stepBtn') as HTMLButtonElement;
+            if (stepBtn) stepBtn.disabled = true;
+        }
     }
 
     private highlightFunction(functionName: string) {
@@ -223,42 +170,28 @@ export class DirectProcessHandler {
         }
     }
 
-    private resetProcessState() {
+    reset() {
         this.currentStep = 0;
         this.completedFunctions.length = 0;
         document.querySelectorAll('.function-item').forEach(item => {
             item.classList.remove('highlight');
         });
-    }
-
-    reset() {
-        this.resetProcessState();
-        this.isRunning = false;
-        if (this.interval) {
-            clearInterval(this.interval);
-            this.interval = null;
-        }
-        const startBtn = document.getElementById('startBtn') as HTMLButtonElement;
-        const stopBtn = document.getElementById('stopBtn') as HTMLButtonElement;
-        if (startBtn) startBtn.disabled = false;
-        if (stopBtn) stopBtn.disabled = true;
+        const stepBtn = document.getElementById('stepBtn') as HTMLButtonElement;
+        if (stepBtn) stepBtn.disabled = false;
+        this.showMessage('Ready to start. Set Tea Requests and click Next Step.', 'process-info');
     }
 
     enable() {
-        const startBtn = document.getElementById('startBtn');
-        const stopBtn = document.getElementById('stopBtn');
-        if (startBtn) startBtn.style.display = 'block';
-        if (stopBtn) stopBtn.style.display = 'block';
+        const stepBtn = document.getElementById('stepBtn');
+        if (stepBtn) stepBtn.style.display = 'block';
         this.reset();
-        this.showMessage('Ready to start. Set Tea Requests and click Start.', 'process-info');
+        this.showMessage('Ready to start. Set Tea Requests and click Next Step.', 'process-info');
     }
 
     disable() {
-        const startBtn = document.getElementById('startBtn');
-        const stopBtn = document.getElementById('stopBtn');
+        const stepBtn = document.getElementById('stepBtn');
         const processMessage = document.getElementById('processMessage');
-        if (startBtn) startBtn.style.display = 'none';
-        if (stopBtn) stopBtn.style.display = 'none';
+        if (stepBtn) stepBtn.style.display = 'none';
         if (processMessage) processMessage.classList.remove('active');
     }
 }

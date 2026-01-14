@@ -8,11 +8,16 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
+    "allowImportingTsExtensions": true,
     "strict": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx"
+  },
+  "ts-node": {
+    "esm": true,
+    "experimentalEsm": true
   },
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
