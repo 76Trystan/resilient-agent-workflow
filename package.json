@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "worker": "ts-node src/worker.ts"
+    "worker": "node --loader ts-node/esm src/temporal_direct_workflow/worker.ts",
+    "temporal:start": "temporal server start-dev"
   },
   "keywords": [],
   "author": "",
