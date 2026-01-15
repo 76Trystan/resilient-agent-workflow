@@ -12,7 +12,6 @@ export async function startWorker() {
   await worker.run();
 }
 
-// Run if this is the main module
 if (import.meta.url === `file://${process.argv[1]}`) {
   startWorker().catch((err) => {
     console.error('Worker failed:', err);

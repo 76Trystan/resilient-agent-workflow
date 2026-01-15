@@ -3,16 +3,23 @@ import { Connection, Client } from '@temporalio/client';
 import { teaMakingWorkflow } from './workflow.ts';
 
 interface WorkflowInput {
-  hasMilk: boolean;
-  hasSugar: boolean;
-  hasSalt: boolean;
-  teabagCount: number;
+  teaState: {
+    hotWater: number;
+    coldWater: number;
+    teabag: number;
+    sugar: number;
+    milk: number;
+    salt: number;
+    kettleCups: number;
+    toggleMilk: boolean;
+    toggleSugar: boolean;
+    toggleSalt: boolean;
+  };
 }
 
 const app = express();
 app.use(express.json());
 
-// Enable CORS for browser requests
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
@@ -27,18 +34,19 @@ app.use((req, res, next) => {
 
 let client: Client | null = null;
 const workflowHandles = new Map<string, any>();
+const workflowProgress = new Map<string, string[]>();
+const workflowState = new Map<string, any>();
 
-// Initialize Temporal client
 async function initializeClient() {
   try {
     const connection = await Connection.connect({ address: 'localhost:7233' });
     client = new Client({ connection });
-    console.log('========== Temporal client connected ==========');  } catch (error) {
+    console.log('✓ Temporal client connected');
+  } catch (error) {
     console.error('Failed to connect to Temporal:', error);
   }
 }
 
-// Start workflow
 app.post('/api/workflow/start', async (req, res) => {
   if (!client) {
     return res.status(503).json({ error: 'Temporal client not connected' });
@@ -55,6 +63,8 @@ app.post('/api/workflow/start', async (req, res) => {
     });
 
     workflowHandles.set(workflowId, handle);
+    workflowProgress.set(workflowId, []);
+    workflowState.set(workflowId, input.teaState);
 
     res.json({ workflowId, status: 'started' });
   } catch (error) {
@@ -62,7 +72,17 @@ app.post('/api/workflow/start', async (req, res) => {
   }
 });
 
-// Get workflow result
+app.get('/api/workflow/:workflowId/progress', async (req, res) => {
+  try {
+    const { workflowId } = req.params;
+    const progress = workflowProgress.get(workflowId) || [];
+    const state = workflowState.get(workflowId) || {};
+    res.json({ completedFunctions: progress, state });
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
 app.get('/api/workflow/:workflowId/result', async (req, res) => {
   try {
     const { workflowId } = req.params;
@@ -74,10 +94,10 @@ app.get('/api/workflow/:workflowId/result', async (req, res) => {
 
     try {
       const result = await handle.result();
+      workflowState.set(workflowId, result.finalState);
       workflowHandles.delete(workflowId);
       res.json(result);
     } catch (error) {
-      // Workflow still running
       res.status(202).json({ error: 'Workflow still running' });
     }
   } catch (error) {
@@ -85,7 +105,6 @@ app.get('/api/workflow/:workflowId/result', async (req, res) => {
   }
 });
 
-// Terminate workflow
 app.post('/api/workflow/:workflowId/terminate', async (req, res) => {
   try {
     const { workflowId } = req.params;
@@ -103,7 +122,6 @@ app.post('/api/workflow/:workflowId/terminate', async (req, res) => {
   }
 });
 
-// Health check
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok',
@@ -111,7 +129,6 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Start server
 const PORT = 3000;
 
 initializeClient().then(() => {

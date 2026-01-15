@@ -194,7 +194,7 @@ export class DirectProcessHandler {
 
         this.completedFunctions.push(func.name);
         this.highlightFunction(func.name);
-        this.showMessage(`✓ ${func.name} completed`, 'success');
+        this.showMessage(` ${func.name} completed`, 'success');
         this.currentStep++;
     }
 
