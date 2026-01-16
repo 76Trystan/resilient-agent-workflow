@@ -81,6 +81,23 @@ export class TeaStateManager {
             }
         });
     }
+
+    // Apply state from API data
+    applyState(state: Record<string, any>) {
+        this.toggleIds.forEach(id => {
+            const element = document.getElementById(id);
+            if (element && state[id] === true) {
+                element.classList.add('active');
+            }
+        });
+
+        this.counterIds.forEach(id => {
+            const element = document.getElementById(id);
+            if (element && state[id] !== undefined) {
+                element.textContent = state[id].toString();
+            }
+        });
+    }
 }
 
 // Toggle Handler
@@ -232,7 +249,6 @@ class TeaProcessApp {
             }
         } catch (error) {
             console.warn('Failed to check Temporal connection:', error);
-            // App continues to work, just without temporal features
         }
     }
 
@@ -241,6 +257,24 @@ class TeaProcessApp {
         this.renderFunctionList();
         this.attachProcessSelectListener();
         this.attachResetHandler();
+        this.loadTeaStateFromAPI();
+    }
+
+    private async loadTeaStateFromAPI() {
+        try {
+            const response = await fetch('/api/tea');
+            if (!response.ok) {
+                console.error('Failed to load tea state:', response.statusText);
+                return;
+            }
+            const data = await response.json();
+            if (data.teaState) {
+                this.stateManager.applyState(data.teaState);
+                console.log('Tea state loaded from API:', data.teaState);
+            }
+        } catch (error) {
+            console.error('Error loading tea state from API:', error);
+        }
     }
 
     private renderFunctionList() {
@@ -366,5 +400,4 @@ document.addEventListener('DOMContentLoaded', () => {
     const app = new TeaProcessApp();
     app.init();
     (window as any).teaApp = app;
-    // new
 });

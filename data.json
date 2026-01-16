@@ -1,5 +1,19 @@
 {
-  "name": "Test Name",
-  "age": 30,
-  "time": "2026-01-15T05:06:38.558Z"
+  "hotWater": 0,
+  "coldWater": 0,
+  "teabag": 0,
+  "sugar": 0,
+  "milk": 0,
+  "salt": 0,
+  "kettleCups": 2,
+  "toggleMilk": false,
+  "toggleSugar": false,
+  "toggleSalt": false,
+  "toggleCupCounter": false,
+  "toggleBoiled": true,
+  "toggleSwitchedOn": true,
+  "toggleEmpty": true,
+  "toggleMashed": true,
+  "toggleStirred": true,
+  "toggleDrunk": true
 }
