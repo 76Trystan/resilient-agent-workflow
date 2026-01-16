@@ -1,8 +1,27 @@
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+import { readFile } from "fs";
+import { writeFile } from "fs/promises";
+
+// Sample data to write to JSON file
+const data = {
+  name: "Alice",
+  age: 30,
+  time: new Date().toISOString(),
+};
+
+async function writeJson() {
+  await writeFile(
+    "data.json",
+    JSON.stringify(data, null, 2),
+    "utf-8"
+  );
+}
+
 
 export const activities = {
   async selfGetCup(): Promise<void> {
     await sleep(1000);
+    writeJson().catch(console.error);
     console.log('selfGetCup');
   },
 

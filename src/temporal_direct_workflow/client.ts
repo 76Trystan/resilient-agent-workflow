@@ -9,12 +9,20 @@ export interface TeaState {
   toggleMilk: boolean;
   toggleSugar: boolean;
   toggleSalt: boolean;
+  toggleCupCounter: boolean;
+  toggleBoiled: boolean;
+  toggleSwitchedOn: boolean;
+  toggleEmpty: boolean;
+  toggleMashed: boolean;
+  toggleStirred: boolean;
+  toggleDrunk: boolean;
 }
 
 export interface WorkflowOutput {
   completedFunctions: string[];
-  status: 'completed' | 'stopped';
+  status: 'completed' | 'stopped' | 'failed';
   finalState: TeaState;
+  errors: string[];
 }
 
 export interface WorkflowInput {
@@ -23,7 +31,8 @@ export interface WorkflowInput {
 
 export interface WorkflowHandle {
   workflowId: string;
-  signal: (signal: string) => Promise<void>;
+  updateState: (newState: Partial<TeaState>) => Promise<void>;
+  logActivity: (activity: string) => Promise<void>;
   getProgress: () => Promise<{ completedFunctions: string[]; state: TeaState }>;
   result: () => Promise<WorkflowOutput>;
   terminate: () => Promise<void>;
@@ -57,8 +66,27 @@ class BrowserTemporalClient {
 
     return {
       workflowId,
-      signal: async (signal: string) => {
-        console.log(`Signal '${signal}' not yet implemented in HTTP API`);
+      updateState: async (newState: Partial<TeaState>) => {
+        const res = await fetch(`${this.apiUrl}/workflow/${workflowId}/update-state`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newState),
+        });
+
+        if (!res.ok) {
+          throw new Error('Failed to update workflow state');
+        }
+      },
+      logActivity: async (activity: string) => {
+        const res = await fetch(`${this.apiUrl}/workflow/${workflowId}/log-activity`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ activity }),
+        });
+
+        if (!res.ok) {
+          throw new Error('Failed to log activity');
+        }
       },
       getProgress: async () => {
         const res = await fetch(`${this.apiUrl}/workflow/${workflowId}/progress`);

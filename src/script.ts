@@ -366,4 +366,5 @@ document.addEventListener('DOMContentLoaded', () => {
     const app = new TeaProcessApp();
     app.init();
     (window as any).teaApp = app;
+    // new
 });

@@ -282,6 +282,23 @@
                 <span class="toggle-label">Salt</span>
                 <div class="toggle" id="toggleSalt"></div>
             </div>
+
+            <ul id="list"></ul>
+<script> 
+    fetch('../data.json')
+        .then(response => response.json())
+        .then(data => {
+const list = document.getElementById('list');
+            data.forEach(item => {
+                const listItem = document.createElement('li');
+                listItem.textContent = `name: ${item.name}, age: ${item.age}, time: ${item.time}`;
+                list.appendChild(listItem);
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching JSON:', error);
+        });
+</script>
         </div>
 
         <!-- Section 2: Process Selection -->

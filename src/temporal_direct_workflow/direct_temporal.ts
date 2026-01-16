@@ -1,11 +1,12 @@
 import { FUNCTIONS, TeaStateManager } from '../script';
-import { temporalClient, WorkflowHandle } from './client';
+import { temporalClient, WorkflowHandle, TeaState } from './client';
 
 export class DirectTemporalProcessHandler {
   private isRunning = false;
   private workflowHandle: WorkflowHandle | null = null;
   private statusCheckInterval: number | null = null;
   private previousCompletedCount = 0;
+  private uiStateListener: (() => void) | null = null;
 
   constructor(
     private stateManager: TeaStateManager,
@@ -15,6 +16,7 @@ export class DirectTemporalProcessHandler {
   init() {
     this.attachStartListener();
     this.attachStopListener();
+    this.attachStateChangeListeners();
   }
 
   private attachStartListener() {
@@ -28,6 +30,54 @@ export class DirectTemporalProcessHandler {
     const stopBtn = document.getElementById('stopBtn');
     if (stopBtn) {
       stopBtn.addEventListener('click', () => this.stop());
+    }
+  }
+
+  private attachStateChangeListeners() {
+    // Listen to counter changes
+    const counterButtons = document.querySelectorAll('.counter-btn');
+    counterButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        setTimeout(() => this.sendStateUpdate(), 50);
+      });
+    });
+
+    // Listen to toggle changes
+    const toggles = document.querySelectorAll('.toggle');
+    toggles.forEach(toggle => {
+      toggle.addEventListener('click', () => {
+        setTimeout(() => this.sendStateUpdate(), 50);
+      });
+    });
+  }
+
+  private async sendStateUpdate() {
+    if (!this.isRunning || !this.workflowHandle) return;
+
+    try {
+      const newState = {
+        hotWater: parseInt(document.getElementById('hotWater')?.textContent || '0'),
+        coldWater: parseInt(document.getElementById('coldWater')?.textContent || '0'),
+        teabag: parseInt(document.getElementById('teabag')?.textContent || '0'),
+        sugar: parseInt(document.getElementById('sugar')?.textContent || '0'),
+        milk: parseInt(document.getElementById('milk')?.textContent || '0'),
+        salt: parseInt(document.getElementById('salt')?.textContent || '0'),
+        kettleCups: parseInt(document.getElementById('kettleCups')?.textContent || '0'),
+        toggleMilk: document.getElementById('toggleMilk')?.classList.contains('active') || false,
+        toggleSugar: document.getElementById('toggleSugar')?.classList.contains('active') || false,
+        toggleSalt: document.getElementById('toggleSalt')?.classList.contains('active') || false,
+        toggleCupCounter: document.getElementById('toggleCupCounter')?.classList.contains('active') || false,
+        toggleBoiled: document.getElementById('toggleBoiled')?.classList.contains('active') || false,
+        toggleSwitchedOn: document.getElementById('toggleSwitchedOn')?.classList.contains('active') || false,
+        toggleEmpty: document.getElementById('toggleEmpty')?.classList.contains('active') || false,
+        toggleMashed: document.getElementById('toggleMashed')?.classList.contains('active') || false,
+        toggleStirred: document.getElementById('toggleStirred')?.classList.contains('active') || false,
+        toggleDrunk: document.getElementById('toggleDrunk')?.classList.contains('active') || false,
+      };
+
+      await this.workflowHandle.updateState(newState);
+    } catch (error) {
+      console.error('Error updating state:', error);
     }
   }
 
@@ -56,17 +106,27 @@ export class DirectTemporalProcessHandler {
           toggleMilk: document.getElementById('toggleMilk')?.classList.contains('active') || false,
           toggleSugar: document.getElementById('toggleSugar')?.classList.contains('active') || false,
           toggleSalt: document.getElementById('toggleSalt')?.classList.contains('active') || false,
+          toggleCupCounter: document.getElementById('toggleCupCounter')?.classList.contains('active') || false,
+          toggleBoiled: document.getElementById('toggleBoiled')?.classList.contains('active') || false,
+          toggleSwitchedOn: document.getElementById('toggleSwitchedOn')?.classList.contains('active') || false,
+          toggleEmpty: document.getElementById('toggleEmpty')?.classList.contains('active') || false,
+          toggleMashed: document.getElementById('toggleMashed')?.classList.contains('active') || false,
+          toggleStirred: document.getElementById('toggleStirred')?.classList.contains('active') || false,
+          toggleDrunk: document.getElementById('toggleDrunk')?.classList.contains('active') || false,
         },
       };
 
       this.workflowHandle = await temporalClient.startWorkflow(teaInput);
 
       this.statusCheckInterval = window.setInterval(async () => {
+        if (!this.workflowHandle) return;
+        
         try {
-          const { completedFunctions, state } = await this.workflowHandle!.getProgress();
+          const { completedFunctions, state } = await this.workflowHandle.getProgress();
           
+          // Check for newly completed functions
           const newFunctions = completedFunctions.slice(this.previousCompletedCount);
-          newFunctions.forEach((fn) => {
+          for (const fn of newFunctions) {
             if (!fn.includes('_skipped')) {
               this.completedFunctions.push(fn);
               this.highlightFunction(fn);
@@ -76,24 +136,27 @@ export class DirectTemporalProcessHandler {
               this.highlightFunction(fnName);
               this.showMessage(`⊘ ${fnName} skipped`, 'success');
             }
-          });
+          }
           
           this.previousCompletedCount = completedFunctions.length;
 
-          if (state) {
-            this.updateUIState(state);
+          // Always sync state to UI every poll
+          if (state && Object.keys(state).length > 0) {
+            this.syncStateToUI(state);
           }
         } catch (error) {
           console.error('Error polling progress:', error);
         }
-      }, 500);
+      }, 200);
 
       const result = await this.workflowHandle.result();
 
       if (result.status === 'completed') {
         this.showMessage('All steps completed!', 'success');
-      } else {
-        this.showMessage('Workflow stopped', 'error');
+      } else if (result.status === 'stopped') {
+        this.showMessage('Workflow stopped by user', 'error');
+      } else if (result.status === 'failed') {
+        this.showMessage(`Workflow failed after retries: ${result.errors.join(', ')}`, 'error');
       }
 
       this.cleanup();
@@ -132,7 +195,10 @@ export class DirectTemporalProcessHandler {
     this.workflowHandle = null;
   }
 
-  private updateUIState(state: any) {
+  private syncStateToUI(state: any) {
+    if (!state) return;
+
+    // Update counters
     if (state.hotWater !== undefined) {
       const el = document.getElementById('hotWater');
       if (el) el.textContent = state.hotWater.toString();
@@ -161,6 +227,32 @@ export class DirectTemporalProcessHandler {
       const el = document.getElementById('kettleCups');
       if (el) el.textContent = state.kettleCups.toString();
     }
+
+    // Update toggles
+    const toggleIds = [
+      'toggleMilk', 'toggleSugar', 'toggleSalt', 'toggleCupCounter',
+      'toggleBoiled', 'toggleSwitchedOn', 'toggleEmpty', 'toggleMashed',
+      'toggleStirred', 'toggleDrunk'
+    ];
+
+    toggleIds.forEach(id => {
+      const stateKey = id as keyof typeof state;
+      if (state[stateKey] !== undefined) {
+        const el = document.getElementById(id);
+        if (el) {
+          if (state[stateKey]) {
+            el.classList.add('active');
+          } else {
+            el.classList.remove('active');
+          }
+        }
+      }
+    });
+  }
+
+  private updateUIState(state: any) {
+    // Deprecated - use syncStateToUI instead
+    this.syncStateToUI(state);
   }
 
   private highlightFunction(functionName: string) {
@@ -194,7 +286,7 @@ export class DirectTemporalProcessHandler {
     if (startBtn) startBtn.style.display = 'block';
     if (stopBtn) stopBtn.style.display = 'block';
     this.reset();
-    this.showMessage('Ready to start. Set Tea Requests and click Start.', 'process-info');
+    this.showMessage('Ready to start. Set Tea Requests and click Start. (You can update values during execution)', 'process-info');
   }
 
   disable() {
