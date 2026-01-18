@@ -277,6 +277,25 @@ class TeaProcessApp {
         }
     }
 
+    private async resetTeaStateAPI() {
+        try {
+            const response = await fetch('/api/tea/reset', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            if (!response.ok) {
+                console.error('Failed to reset tea state on server:', response.statusText);
+                return;
+            }
+            const data = await response.json();
+            console.log('Tea state reset on server:', data);
+        } catch (error) {
+            console.error('Error resetting tea state on server:', error);
+        }
+    }
+
     private renderFunctionList() {
         const functionList = document.getElementById('functionList');
         if (!functionList) return;
@@ -365,7 +384,7 @@ class TeaProcessApp {
         const resetBtn = document.getElementById('resetBtn');
         if (!resetBtn) return;
 
-        resetBtn.addEventListener('click', () => {
+        resetBtn.addEventListener('click', async () => {
             this.stateManager.reset();
             this.resetProcessState();
             (document.getElementById('processSelect') as HTMLSelectElement).value = 'none';
@@ -387,6 +406,9 @@ class TeaProcessApp {
             if (this.directTemporalProcessHandler) {
                 this.directTemporalProcessHandler.reset();
             }
+
+            // Reset data.json on the server
+            await this.resetTeaStateAPI();
         });
     }
 
