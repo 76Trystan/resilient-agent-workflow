@@ -140,9 +140,17 @@ export class DirectTemporalProcessHandler {
           
           this.previousCompletedCount = completedFunctions.length;
 
-          // Always sync state to UI every poll
-          if (state && Object.keys(state).length > 0) {
-            this.syncStateToUI(state);
+          // Fetch data from API to sync UI state (now working)
+          try {
+            const response = await fetch('http://localhost:3000/api/tea');
+            if (response.ok) {
+              const data = await response.json();
+              if (data.teaState) {
+                this.syncStateToUI(data.teaState);
+              }
+            }
+          } catch (error) {
+            console.error('Error fetching tea state from API:', error);
           }
         } catch (error) {
           console.error('Error polling progress:', error);
