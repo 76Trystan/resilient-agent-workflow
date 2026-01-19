@@ -127,14 +127,14 @@ export class DirectTemporalProcessHandler {
           // Check for newly completed functions
           const newFunctions = completedFunctions.slice(this.previousCompletedCount);
           for (const fn of newFunctions) {
-            if (!fn.includes('_skipped')) {
+            if (!fn.includes('skipped')) {
               this.completedFunctions.push(fn);
               this.highlightFunction(fn);
-              this.showMessage(`✓ ${fn} completed`, 'success');
+              this.showMessage(` ${fn} completed`, 'success');
             } else {
               const fnName = fn.replace('_skipped', '');
               this.highlightFunction(fnName);
-              this.showMessage(`⊘ ${fnName} skipped`, 'success');
+              this.showMessage(`${fnName} skipped`, 'success');
             }
           }
           
@@ -258,10 +258,9 @@ export class DirectTemporalProcessHandler {
     });
   }
 
-  private updateUIState(state: any) {
-    // Deprecated - use syncStateToUI instead
-    this.syncStateToUI(state);
-  }
+  // private updateUIState(state: any) {
+  //   this.syncStateToUI(state);
+  // }
 
   private highlightFunction(functionName: string) {
     document.querySelectorAll('.function-item').forEach((item) => {
