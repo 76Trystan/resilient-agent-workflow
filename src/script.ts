@@ -262,7 +262,7 @@ class TeaProcessApp {
 
     private async loadTeaStateFromAPI() {
         try {
-            const response = await fetch('/api/tea');
+            const response = await fetch('http://localhost:3000/api/tea');
             if (!response.ok) {
                 console.error('Failed to load tea state:', response.statusText);
                 return;
@@ -279,18 +279,23 @@ class TeaProcessApp {
 
     private async resetTeaStateAPI() {
         try {
-            const response = await fetch('/api/tea/reset', {
+            console.log('Calling reset API...');
+            const response = await fetch('http://localhost:3000/api/tea/reset', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
-                }
+                },
+                body: JSON.stringify({})
             });
+            console.log('Reset response:', response.status);
             if (!response.ok) {
                 console.error('Failed to reset tea state on server:', response.statusText);
                 return;
             }
             const data = await response.json();
             console.log('Tea state reset on server:', data);
+            // Reload page to reflect changes
+            setTimeout(() => window.location.reload(), 500);
         } catch (error) {
             console.error('Error resetting tea state on server:', error);
         }
@@ -385,6 +390,12 @@ class TeaProcessApp {
         if (!resetBtn) return;
 
         resetBtn.addEventListener('click', async () => {
+            console.log('Reset button clicked');
+            
+            // Reset data.json on the server FIRST
+            await this.resetTeaStateAPI();
+            
+            // Then reset UI
             this.stateManager.reset();
             this.resetProcessState();
             (document.getElementById('processSelect') as HTMLSelectElement).value = 'none';
@@ -406,9 +417,8 @@ class TeaProcessApp {
             if (this.directTemporalProcessHandler) {
                 this.directTemporalProcessHandler.reset();
             }
-
-            // Reset data.json on the server
-            await this.resetTeaStateAPI();
+            
+            console.log('Reset complete');
         });
     }
 

@@ -1,10 +1,13 @@
 import express from 'express';
 import { Connection, Client } from '@temporalio/client';
 import { teaMakingWorkflow } from './workflow.ts';
-import { readFile } from "fs";
-import { promises as fsPromises } from 'fs'; // Import the promises API
+import { promises as fsPromises } from 'fs';
+import { promises as fs } from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 interface WorkflowInput {
   teaState: {
@@ -37,9 +40,6 @@ async function readFileAsync(filePath: string) {
   }
 }
 
-// Example usage:
-readFileAsync('yourfile.txt');
-
 const app = express();
 app.use(express.json());
 
@@ -59,7 +59,7 @@ let client: Client | null = null;
 const workflowHandles = new Map<string, any>();
 const workflowProgress = new Map<string, string[]>();
 const workflowState = new Map<string, any>();
-const workflowActivities = new Map<string, string[]>(); // Track completed activities per workflow
+const workflowActivities = new Map<string, string[]>();
 
 async function initializeClient() {
   try {
@@ -204,13 +204,51 @@ app.get('/api/tea', async (req, res) => {
             return;
         }
         const parsedData = JSON.parse(teaData);
-        //console.log(typeof())
-        res.json({parsedData}); // mopdify to return only values in the object
+        res.json(parsedData);
     } catch (error) {
         res.status(500).json({ error: 'Failed to read data' });
     }
 });
 
+app.post('/api/tea/reset', async (req, res) => {
+    try {
+        const filePath = './data.json';
+        const resetData = {
+            teaState: {
+                hotWater: 0,
+                coldWater: 0,
+                teabag: 0,
+                sugar: 0,
+                milk: 0,
+                salt: 0,
+                kettleCups: 0,
+                toggleMilk: false,
+                toggleSugar: false,
+                toggleSalt: false,
+                toggleCupCounter: false,
+                toggleBoiled: false,
+                toggleSwitchedOn: false,
+                toggleEmpty: false,
+                toggleMashed: false,
+                toggleStirred: false,
+                toggleDrunk: false
+            }
+        };
+        await fs.writeFile(filePath, JSON.stringify(resetData, null, 2), 'utf-8');
+        res.json({ success: true, ...resetData });
+    } catch (error) {
+        console.error('Error resetting tea state:', error);
+        res.status(500).json({ error: 'Failed to reset data' });
+    }
+});
+
+// Static files (AFTER all API routes)
+app.use(express.static(path.join(__dirname, '../')));
+
+// Catch-all route for HTML (AFTER static files)
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../index.html'));
+});
 
 const PORT = 3000;
 

@@ -101,7 +101,7 @@ export async function teaMakingWorkflow(input: WorkflowInput): Promise<WorkflowO
     
     // 2. kettleFill (no dependencies)
     await executeStep('kettleFill', () => activities.kettleFill(), () => {
-      // No state change needed
+      state.kettleCups += 1;
     });
     
     // 3. kettleTurnOn (depends on: kettleFill)
@@ -116,12 +116,12 @@ export async function teaMakingWorkflow(input: WorkflowInput): Promise<WorkflowO
     
     // 5. cupAddTeabag (depends on: selfGetCup)
     await executeStep('cupAddTeabag', () => activities.cupAddTeabag(), () => {
-      state.teabag = Math.max(0, state.teabag - 1);
+      state.teabag += 1;
     });
     
     // 6. cupAddWater (depends on: selfGetCup, kettleWaitWhistle)
     await executeStep('cupAddWater', () => activities.cupAddWater(), () => {
-      state.hotWater = Math.max(0, state.hotWater - 1);
+      state.hotWater += 1;
     });
     
     // 7. cupMashTea (depends on: cupAddWater, cupAddTeabag)
@@ -131,13 +131,13 @@ export async function teaMakingWorkflow(input: WorkflowInput): Promise<WorkflowO
     
     // 8. cupRemoveTeabag (depends on: cupAddTeabag)
     await executeStep('cupRemoveTeabag', () => activities.cupRemoveTeabag(), () => {
-      // No state change needed
+      state.teabag -= 1;
     });
     
     // 9. cupAddMilk (depends on: toggleMilk, selfGetCup)
     if (state.toggleMilk) {
       await executeStep('cupAddMilk', () => activities.cupAddMilk(), () => {
-        state.milk = Math.max(0, state.milk - 1);
+        state.milk += 1;
       });
     } else {
       completedFunctions.push('cupAddMilk_skipped');
@@ -146,16 +146,16 @@ export async function teaMakingWorkflow(input: WorkflowInput): Promise<WorkflowO
     // 10. cupAddSugar (depends on: toggleSugar, selfGetCup)
     if (state.toggleSugar) {
       await executeStep('cupAddSugar', () => activities.cupAddSugar(), () => {
-        state.sugar = Math.max(0, state.sugar - 1);
+        state.sugar += 1;
       });
     } else {
       completedFunctions.push('cupAddSugar_skipped');
     }
 
-    // 11. cupAddSalt (depends on: selfGetCup)
+    // 11. cupAddSalt (depends on: selfGetCut)
     if (state.toggleSalt) {
       await executeStep('cupAddSalt', () => activities.cupAddSalt(), () => {
-        state.salt = Math.max(0, state.salt - 1);
+        state.salt += 1;
       });
     } else {
       completedFunctions.push('cupAddSalt_skipped');
@@ -181,6 +181,9 @@ export async function teaMakingWorkflow(input: WorkflowInput): Promise<WorkflowO
       state.toggleEmpty = true;
       state.hotWater = 0;
       state.coldWater = 0;
+      state.milk = 0;
+      state.sugar = 0;
+      state.salt = 0;
     });
     
     // 15. selfTidyUp (no dependencies)

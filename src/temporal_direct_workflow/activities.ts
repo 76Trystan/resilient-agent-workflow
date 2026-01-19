@@ -15,7 +15,8 @@ const dataFilePath = path.join(__dirname, '../../data.json');
 async function readTeaState() {
   try {
     const content = await readFile(dataFilePath, 'utf-8');
-    return JSON.parse(content);
+    const data = JSON.parse(content);
+    return data.teaState || data;
   } catch (error) {
     console.error('Error reading tea state:', error);
     return null;
@@ -25,9 +26,16 @@ async function readTeaState() {
 // Helper function to write updated state
 async function writeTeaState(state: Record<string, any>) {
   try {
+    const filePath = dataFilePath;
+    
+    // Always write with the proper structure
+    const data = {
+      teaState: state
+    };
+    
     await writeFile(
-      dataFilePath,
-      JSON.stringify(state, null, 2),
+      filePath,
+      JSON.stringify(data, null, 2),
       'utf-8'
     );
     console.log('Tea state updated:', state);
