@@ -65,7 +65,11 @@ async function initializeClient() {
   try {
     const connection = await Connection.connect({ address: 'localhost:7233' });
     client = new Client({ connection });
-    console.log('✓ Temporal client connected');
+    console.log()
+    console.log("=============================")
+    console.log('| Temporal client connected |');
+    console.log("=============================")
+
   } catch (error) {
     console.error('Failed to connect to Temporal:', error);
   }
@@ -273,6 +277,7 @@ const PORT = 3000;
 
 initializeClient().then(() => {
   app.listen(PORT, () => {
+    console.log();
     console.log(`Server running on http://localhost:${PORT}`);
   });
 });
