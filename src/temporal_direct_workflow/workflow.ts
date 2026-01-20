@@ -53,6 +53,8 @@ export interface WorkflowOutput {
   errors: string[];
 }
 
+
+
 export async function teaMakingWorkflow(input: WorkflowInput): Promise<WorkflowOutput> {
   const completedFunctions: string[] = [];
   const errors: string[] = [];
@@ -79,16 +81,16 @@ export async function teaMakingWorkflow(input: WorkflowInput): Promise<WorkflowO
 
   const executeStep = async (
     stepName: string,
-    activityFn: () => Promise<void>,
-    stateUpdate: () => void
+    activityFn: () => Promise<any>,
+    stateUpdate: (result?: any) => Promise<void> | void
   ) => {
     while (isPaused && !shouldStop) {
       await sleep(100);
     }
     if (shouldStop) throw new Error('Workflow stopped by user');
     
-    await activityFn();
-    stateUpdate(); // Update state after activity succeeds
+    const result = await activityFn();
+    await stateUpdate(result); // Update state after activity succeeds
     completedFunctions.push(stepName);
     log.info(`Activity completed: ${stepName}`);
   };
@@ -99,9 +101,12 @@ export async function teaMakingWorkflow(input: WorkflowInput): Promise<WorkflowO
       state.toggleCupCounter = true;
     });
     
-    // 2. kettleFill (no dependencies)
-    await executeStep('kettleFill', () => activities.kettleFill(), () => {
-      state.kettleCups += 1;
+    // 2. kettleFill (no dependencies) - receives sabotaged state from activity
+    await executeStep('kettleFill', () => activities.kettleFill(), (result) => {
+      if (result) {
+        Object.assign(state, result);
+        log.info(`State updated from activity: ${JSON.stringify(result)}`);
+      }
     });
     
     // 3. kettleTurnOn (depends on: kettleFill)
@@ -167,7 +172,6 @@ export async function teaMakingWorkflow(input: WorkflowInput): Promise<WorkflowO
     });
     
     // 13. selfDrinkCup (depends on: cupStir)
-    // If toggleEmpty is true, auto-correct it before attempting
     if (state.toggleEmpty) {
       log.info('Auto-correcting: toggleEmpty was true, setting to false for drinking');
       state.toggleEmpty = false;
