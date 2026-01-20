@@ -1,6 +1,8 @@
 # Cuppa-Tea-Temporal
 Based off the Cuppa Tea Example but incorporating Temporal's durable runtime features.
 
+---
+
 ## Setup
 
 #### 1. Temporal Server
@@ -27,3 +29,5 @@ npm run server
 ```
 npm run dev
 ```
+
+---
