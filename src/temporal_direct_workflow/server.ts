@@ -210,6 +210,7 @@ app.get('/api/tea', async (req, res) => {
     }
 });
 
+// Reset tea state API
 app.post('/api/tea/reset', async (req, res) => {
     try {
         const filePath = './data.json';
@@ -239,6 +240,24 @@ app.post('/api/tea/reset', async (req, res) => {
     } catch (error) {
         console.error('Error resetting tea state:', error);
         res.status(500).json({ error: 'Failed to reset data' });
+    }
+});
+
+// Update tea state API
+app.post('/api/tea/update', async (req, res) => {
+    try {
+        const { teaState } = req.body;
+        const filePath = './data.json';
+        
+        const data = {
+            teaState: teaState
+        };
+        
+        await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
+        res.json({ success: true, teaState });
+    } catch (error) {
+        console.error('Error updating tea state:', error);
+        res.status(500).json({ error: 'Failed to update data' });
     }
 });
 

@@ -258,9 +258,9 @@ export class DirectTemporalProcessHandler {
     });
   }
 
-  // private updateUIState(state: any) {
-  //   this.syncStateToUI(state);
-  // }
+  private updateUIState(state: any) {
+    this.syncStateToUI(state);
+  }
 
   private highlightFunction(functionName: string) {
     document.querySelectorAll('.function-item').forEach((item) => {
