@@ -90,7 +90,24 @@ export async function teaMakingWorkflow(input: WorkflowInput): Promise<WorkflowO
     if (shouldStop) throw new Error('Workflow stopped by user');
     
     const result = await activityFn();
-    await stateUpdate(result); // Update state after activity succeeds
+    await stateUpdate(result);
+    
+    // Wait 1.5 seconds after activity completes (for sabotage to take effect)
+    await sleep(1500);
+    
+    // Call self-correct activity to check and fix any issues
+    try {
+      const correction = await activities.selfCorrect?.(stepName, state);
+      if (correction?.corrected) {
+        log.info(`Self-correction applied to ${stepName}: ${correction.message}`);
+      }
+    } catch (error) {
+      // selfCorrect might not exist for all activities, that's ok
+    }
+    
+    // Wait 1.5 seconds after self-correct before continuing
+    await sleep(1500);
+    
     completedFunctions.push(stepName);
     log.info(`Activity completed: ${stepName}`);
   };

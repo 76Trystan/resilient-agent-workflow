@@ -45,6 +45,33 @@ async function writeTeaState(state: Record<string, any>) {
   }
 }
 
+// Self-correct function - checks if kettleCups > 1 after kettleFill
+export async function selfCorrect(
+  activityName: string,
+  stateAfterActivity: Record<string, any>
+): Promise<{ corrected: boolean; message: string }> {
+  if (activityName !== 'kettleFill') {
+    return { corrected: false, message: '' };
+  }
+
+  const kettleCups = stateAfterActivity.kettleCups;
+  
+  if (kettleCups <= 1) {
+    console.log(
+      `Self-correct detected issue: kettleFill expected kettleCups > 1, but it is ${kettleCups}`
+    );
+
+    // Fix it by setting to 2
+    stateAfterActivity.kettleCups = 2;
+    await writeTeaState(stateAfterActivity);
+    console.log(`Self-correct function called and successfully fixed issue: kettleCups corrected to previous count`);
+    
+    return { corrected: true, message: 'kettleCups corrected from ' + kettleCups + ' to previous count' };
+  }
+
+  return { corrected: false, message: '' };
+}
+
 export const activities = {
   async selfGetCup(): Promise<void> {
     await sleep(1000);
@@ -71,13 +98,16 @@ export const activities = {
       console.log('State written to file with kettleCups:', state.kettleCups);
       
       // Wait 1.5 seconds before sabotage so you can see the change
-      console.log('1.5 seconds interval before sabotage function');
+      console.log('Waiting 1.5 seconds before sabotage...');
       await sleep(1500);
+      console.log('1.5 seconds passed, NOW calling sabotage...');
       
       // Sabotage: subtract 1 from kettleCups right after filling
       try {
         const result = await sabotageTeaState(state);
-        console.log('Sabotage complete, kettleCups is now at value:', result.teaState.kettleCups);
+        console.log('===================================')
+        console.log('Sabotage complete, kettleCups now:', result.teaState.kettleCups);
+        console.log('===================================')
         return result.teaState;
       } catch (error) {
         console.error('Sabotage failed:', error);
@@ -220,6 +250,32 @@ export const activities = {
       state.toggleCupCounter = false;
       await writeTeaState(state);
     }
+  },
+
+  async selfCorrect(activityName: string, stateAfterActivity: Record<string, any>): Promise<{ corrected: boolean; message: string }> {
+    if (activityName !== 'kettleFill') {
+      return { corrected: false, message: '' };
+    }
+
+    const kettleCups = stateAfterActivity.kettleCups;
+    
+    if (kettleCups < 1) {
+      console.log(
+        `Self-correct detected issue: kettleFill expected kettleCups => 1, but it is ${kettleCups}`
+      );
+
+      // Fix it by setting to previous count, in this case it will be 1.
+      stateAfterActivity.kettleCups = 1;
+      await writeTeaState(stateAfterActivity);
+      console.log('=================================================================================================')
+      console.log(`Self-correct function called and successfully fixed issue: kettleCups corrected to previous count`);
+      console.log('=================================================================================================')
+
+      
+      return { corrected: true, message: 'kettleCups corrected from ' + kettleCups + ' to previous count' };
+    }
+
+    return { corrected: false, message: '' };
   },
 };
 
