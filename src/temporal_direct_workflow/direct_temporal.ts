@@ -293,7 +293,7 @@ export class DirectTemporalProcessHandler {
     if (startBtn) startBtn.style.display = 'block';
     if (stopBtn) stopBtn.style.display = 'block';
     this.reset();
-    this.showMessage('Ready to start. Set Tea Requests and click Start. (You can update values during execution)', 'process-info');
+    this.showMessage('Click to start', 'process-info');
   }
 
   disable() {
