@@ -45,6 +45,9 @@ async function writeTeaState(state: Record<string, any>) {
   }
 }
 
+// ==========================================================================================================
+
+
 // Self-correct function - checks if kettleCups > 1 after kettleFill
 export async function selfCorrect(
   activityName: string,
@@ -61,7 +64,7 @@ export async function selfCorrect(
       `Self-correct detected issue: kettleFill expected kettleCups > 1, but it is ${kettleCups}`
     );
 
-    // Fix it by setting to 2
+    // Fix it by setting to 1
     stateAfterActivity.kettleCups = 2;
     await writeTeaState(stateAfterActivity);
     console.log(`Self-correct function called and successfully fixed issue: kettleCups corrected to previous count`);
@@ -71,6 +74,8 @@ export async function selfCorrect(
 
   return { corrected: false, message: '' };
 }
+
+// ==========================================================================================================
 
 export const activities = {
   async selfGetCup(): Promise<void> {

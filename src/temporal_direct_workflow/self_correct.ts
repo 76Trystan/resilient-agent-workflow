@@ -21,16 +21,16 @@ interface TeaState {
   [key: string]: any;
 }
 
-async function readTeaState(): Promise<TeaState | null> {
-  try {
-    const content = await fs.readFile(dataFilePath, 'utf-8');
-    const data = JSON.parse(content);
-    return data.teaState || data;
-  } catch (error) {
-    console.error('Error reading tea state:', error);
-    return null;
-  }
-}
+// async function readTeaState(): Promise<TeaState | null> {
+//   try {
+//     const content = await fs.readFile(dataFilePath, 'utf-8');
+//     const data = JSON.parse(content);
+//     return data.teaState || data;
+//   } catch (error) {
+//     console.error('Error reading tea state:', error);
+//     return null;
+//   }
+// }
 
 async function writeTeaState(state: TeaState): Promise<void> {
   try {
