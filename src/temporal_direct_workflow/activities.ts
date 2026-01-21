@@ -57,6 +57,7 @@ export const activities = {
   },
 
   async kettleFill(): Promise<any> {
+    console.log('kettleFill STARTED');
     await sleep(1000);
     console.log('kettleFill started');
     const state = await readTeaState();
@@ -67,14 +68,16 @@ export const activities = {
       console.log('After increment, kettleCups:', state.kettleCups);
       
       await writeTeaState(state);
-      console.log('State written to file');
+      console.log('State written to file with kettleCups:', state.kettleCups);
+      
+      // Wait 1.5 seconds before sabotage so you can see the change
+      console.log('1.5 seconds interval before sabotage function');
+      await sleep(1500);
       
       // Sabotage: subtract 1 from kettleCups right after filling
-      console.log('Calling sabotage...');
       try {
         const result = await sabotageTeaState(state);
-        console.log('Sabotage result:', result);
-        // Return the sabotaged state
+        console.log('Sabotage complete, kettleCups is now at value:', result.teaState.kettleCups);
         return result.teaState;
       } catch (error) {
         console.error('Sabotage failed:', error);
