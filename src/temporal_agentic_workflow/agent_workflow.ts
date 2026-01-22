@@ -6,9 +6,8 @@ import {
   log,
 } from '@temporalio/workflow';
 import type { Activities } from './activities.ts';
+import type { agentActivities } from './agent_activities.ts';
 import { evaluateTriggers } from './trigger.ts';
-import { AgentPool } from './agent.ts';
-import { AgentMemory } from './agent_memory.ts';
 
 const activities = proxyActivities<Activities>({
   startToCloseTimeout: '10 seconds',
@@ -20,12 +19,22 @@ const activities = proxyActivities<Activities>({
   },
 });
 
+// Separate activity config for agent calls (longer timeout since LLM might be slow)
+const agentActivityProxy = proxyActivities<typeof agentActivities>({
+  startToCloseTimeout: '30 seconds',
+  retry: {
+    maximumAttempts: 2,
+    initialInterval: '1s',
+    maximumInterval: '5s',
+    backoffCoefficient: 1.5,
+  },
+});
+
 export const updateStateSignal = defineSignal<any>('updateState');
 export const pauseSignal = defineSignal('pause');
 export const resumeSignal = defineSignal('resume');
 export const stopSignal = defineSignal('stop');
 
-// ✨ MAKE SURE THIS IS EXPORTED
 export interface TeaState {
   hotWater: number;
   coldWater: number;
@@ -58,8 +67,6 @@ export interface WorkflowOutput {
 }
 
 export async function teaMakingWorkflow(input: WorkflowInput): Promise<WorkflowOutput> {
-  const agentMemory = new AgentMemory();
-  const agentPool = new AgentPool(agentMemory);
   const completedFunctions: string[] = [];
   const errors: string[] = [];
   const state = { ...input.teaState };
@@ -96,18 +103,18 @@ export async function teaMakingWorkflow(input: WorkflowInput): Promise<WorkflowO
     const result = await activityFn();
     await stateUpdate(result);
     
-    // ✨ Evaluate triggers and invoke LLM-powered agents
+    // Evaluate triggers and invoke agent if needed
     await sleep(500);
     
     const triggeredCondition = evaluateTriggers(state, stepName);
     
     if (triggeredCondition) {
-      log.info(`⚠️  Trigger detected: ${triggeredCondition.name}`);
-      log.info(`   Description: ${triggeredCondition.description}`);
+      log.info(`Trigger detected: ${triggeredCondition.name}`);
+      log.info(`Description: ${triggeredCondition.description}`);
       
       try {
-        // Invoke LLM-powered agent with trigger description
-        const decision = await agentPool.invokeAgent(
+        // Call agent activity instead of running agent directly in workflow
+        const decision = await agentActivityProxy.invokeAgent(
           triggeredCondition.agentType,
           triggeredCondition.name,
           triggeredCondition.description,
@@ -116,39 +123,18 @@ export async function teaMakingWorkflow(input: WorkflowInput): Promise<WorkflowO
         );
         
         log.info(`Agent Analysis: ${decision.analysis}`);
-        log.info(`   Confidence: ${(decision.confidence * 100).toFixed(1)}%`);
+        log.info(`Confidence: ${(decision.confidence * 100).toFixed(1)}%`);
         
         // Only apply corrections if confidence is reasonable
         if (decision.confidence > 0.3 && Object.keys(decision.newState).length > 0) {
           Object.assign(state, decision.newState);
           log.info(`Applied correction: ${decision.action}`);
-          
-          // Record in memory (with LLM flag)
-          agentMemory.recordAction(
-            triggeredCondition.name,
-            triggeredCondition.agentType,
-            decision.action,
-            true,
-            decision.confidence,
-            decision.reasoning,
-            true // LLM was used
-          );
-          
           await sleep(500);
         } else if (decision.confidence <= 0.3) {
           log.warn(`Agent confidence too low (${decision.confidence}), skipping correction`);
         }
       } catch (error) {
         log.error(`Agent error: ${(error as Error).message}`);
-        agentMemory.recordAction(
-          triggeredCondition.name,
-          triggeredCondition.agentType,
-          'error',
-          false,
-          0,
-          (error as Error).message,
-          true
-        );
         errors.push(`Agent error on ${stepName}: ${(error as Error).message}`);
       }
     } else {
@@ -165,7 +151,7 @@ export async function teaMakingWorkflow(input: WorkflowInput): Promise<WorkflowO
       state.toggleCupCounter = true;
     });
     
-    // 2. kettleFill (no dependencies) - receives sabotaged state from activity
+    // 2. kettleFill (no dependencies)
     await executeStep('kettleFill', () => activities.kettleFill(), (result) => {
       if (result) {
         Object.assign(state, result);

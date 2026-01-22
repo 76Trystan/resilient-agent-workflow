@@ -1,12 +1,16 @@
 import { Worker } from '@temporalio/worker';
 import * as workflow from './agent_workflow.ts';
 import { activities } from './activities.ts';
+import { agentActivities } from './agent_activities.ts';
 
 export async function startWorker() {
   const worker = await Worker.create({
     workflowsPath: new URL('./agent_workflow.ts', import.meta.url).pathname,
-    activities,
-    taskQueue: 'tea-making',
+    activities: {
+      ...activities,
+      ...agentActivities,
+    },
+    taskQueue: 'tea-making-agentic',
   });
 
   await worker.run();

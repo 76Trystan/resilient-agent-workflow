@@ -86,7 +86,7 @@ app.post('/api/workflow/start', async (req, res) => {
 
     const handle = await client.workflow.start(teaMakingWorkflow, {
       args: [input],
-      taskQueue: 'tea-making',
+      taskQueue: 'tea-making-agentic',
       workflowId,
     });
 
