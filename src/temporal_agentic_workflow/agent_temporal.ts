@@ -180,7 +180,7 @@ export class AgenticTemporalProcessHandler {
 
     try {
       await this.workflowHandle.terminate();
-      this.showMessage('⏹️  Workflow stopped', 'error');
+      this.showMessage('Workflow stopped', 'error');
     } catch (error) {
       console.error('Error stopping workflow:', error);
     }
@@ -317,7 +317,7 @@ export class AgenticTemporalProcessHandler {
     if (startBtn) startBtn.style.display = 'block';
     if (stopBtn) stopBtn.style.display = 'block';
     this.reset();
-    this.showMessage('🤖 Agentic workflow ready - Click Start', 'process-info');
+    this.showMessage('Agentic workflow ready - Click Start', 'process-info');
     this.clearAgentMessage();
   }
 
