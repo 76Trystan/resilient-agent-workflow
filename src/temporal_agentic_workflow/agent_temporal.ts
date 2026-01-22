@@ -131,11 +131,11 @@ export class AgenticTemporalProcessHandler {
             if (!fn.includes('skipped')) {
               this.completedFunctions.push(fn);
               this.highlightFunction(fn);
-              this.showMessage(`✅ ${fn} completed`, 'success');
+              this.showMessage(`${fn} completed`, 'success');
             } else {
               const fnName = fn.replace('_skipped', '');
               this.highlightFunction(fnName);
-              this.showMessage(`⏭️  ${fnName} skipped`, 'success');
+              this.showMessage(`⏭${fnName} skipped`, 'success');
             }
           }
           
@@ -161,16 +161,16 @@ export class AgenticTemporalProcessHandler {
       const result = await this.workflowHandle.result();
 
       if (result.status === 'completed') {
-        this.showMessage('✅ All steps completed! Agentic workflow finished.', 'success');
+        this.showMessage('All steps completed! Agentic workflow finished.', 'success');
       } else if (result.status === 'stopped') {
-        this.showMessage('⏹️  Workflow stopped by user', 'error');
+        this.showMessage('⏹Workflow stopped by user', 'error');
       } else if (result.status === 'failed') {
-        this.showMessage(`❌ Workflow failed: ${result.errors.join(', ')}`, 'error');
+        this.showMessage(`Workflow failed: ${result.errors.join(', ')}`, 'error');
       }
 
       this.cleanup();
     } catch (error) {
-      this.showMessage(`❌ Error: ${(error as Error).message}`, 'error');
+      this.showMessage(`Error: ${(error as Error).message}`, 'error');
       this.cleanup();
     }
   }
@@ -281,7 +281,7 @@ export class AgenticTemporalProcessHandler {
     const llmChatContent = document.getElementById('llmChatContent');
 
     if (llmChat && llmChatContent) {
-      llmChatContent.innerHTML = 'No agent interactions on happy path ✅';
+      llmChatContent.innerHTML = 'No agent response';
       llmChat.classList.add('active');
     }
   }
