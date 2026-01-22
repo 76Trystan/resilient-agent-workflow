@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { sabotageTeaState } from './sabotage.ts';
+import { sabotageTeaState } from '../sabotage.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -56,7 +56,7 @@ export async function agentFixState(
   state: Record<string, any>,
   issues: string[]
 ): Promise<boolean> {
-  console.log(`🤖 Agent starting for ${activityName}`);
+  console.log(`Agent starting for ${activityName}`);
   console.log(`Issues detected: ${issues.join(', ')}`);
 
   try {
@@ -74,6 +74,7 @@ Your task:
 2. Identify what values need to be fixed based on the issues
 3. Use the update_state tool to fix each issue
 4. Verify the fixes are correct
+5. Provide a summary of the changes made
 
 Be systematic and fix one issue at a time. Only update values that directly address the reported issues.
 `;

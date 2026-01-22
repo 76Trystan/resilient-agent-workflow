@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -177,7 +178,10 @@
             color: #333;
         }
 
-        .reset-btn, .step-btn, .start-btn, .stop-btn {
+        .reset-btn,
+        .step-btn,
+        .start-btn,
+        .stop-btn {
             width: 100%;
             padding: 12px;
             color: white;
@@ -198,16 +202,19 @@
             background: #ee5a52;
         }
 
-        .step-btn, .start-btn {
+        .step-btn,
+        .start-btn {
             background: #2196F3;
             display: none;
         }
 
-        .step-btn:hover, .start-btn:hover {
+        .step-btn:hover,
+        .start-btn:hover {
             background: #0b7dda;
         }
 
-        .step-btn:disabled, .start-btn:disabled {
+        .step-btn:disabled,
+        .start-btn:disabled {
             background: #ccc;
             cursor: not-allowed;
         }
@@ -265,6 +272,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <!-- Section 1: Tea Requests -->
@@ -292,13 +300,21 @@
                 <option value="manual">Manual Process</option>
                 <option value="direct">Direct Process</option>
                 <option value="direct_temporal">Direct Temporal Process</option>
+                <option value="agentic_temporal">Agentic Temporal Process</option>
+
             </select>
             <div id="processMessage" class="message process-info"></div>
             <button class="step-btn" id="stepBtn">Next Step</button>
             <button class="start-btn" id="startBtn">Start</button>
             <button class="stop-btn" id="stopBtn">Stop</button>
         </div>
-
+        <div id="llmChat" class="message process-info">
+            <strong>Agent:</strong>
+            <div id="llmChatContent">
+                Loading Agent Response...
+            </div>
+        </div>
+        
         <!-- Section 3: Function Tools -->
         <div class="section">
             <h2>Function Tools</h2>
@@ -402,4 +418,5 @@
 
     <script type="module" src="/script.ts"></script>
 </body>
+
 </html>

@@ -2,11 +2,13 @@ import { ManualProcessHandler } from './processes/manual'
 import { DirectProcessHandler } from './processes/direct'
 import { DirectTemporalProcessHandler } from './temporal_direct_workflow/direct_temporal'
 import { temporalClient } from './temporal_direct_workflow/client'
+//import { DirectTemporalProcessHandler } from './temporal_agentic_workflow/agent_temporal'
+//import { temporalClient } from './temporal_agentic_workflow/client'
 
 // Dependency and Action Definitions
 export const FUNCTIONS = [
     { name: 'selfGetCup', dependencies: [] },
-    { name: 'kettleFill', dependencies: [] },
+    { name: 'kettleFill', dependencies: ['kettleCups'] },
     { name: 'kettleTurnOn', dependencies: ['kettleFill'] },
     { name: 'kettleWaitWhistle', dependencies: ['kettleTurnOn'] },
     { name: 'cupAddTeabag', dependencies: ['selfGetCup'] },

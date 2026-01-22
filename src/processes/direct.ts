@@ -250,7 +250,7 @@ export class DirectProcessHandler {
         if (startBtn) startBtn.style.display = 'block';
         if (stopBtn) stopBtn.style.display = 'block';
         this.reset();
-        this.showMessage('Ready to start. Set Tea Requests and click Start.', 'process-info');
+        this.showMessage('Click to start.', 'process-info');
     }
 
     disable() {

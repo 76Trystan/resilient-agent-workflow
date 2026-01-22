@@ -1,7 +1,7 @@
 import { readFile, writeFile } from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
-import { sabotageTeaState } from "./sabotage.ts";
+import { sabotageTeaState } from "../sabotage.ts";
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -43,22 +43,22 @@ export const activities = {
 
   async kettleFill(): Promise<any> {
     await sleep(1000);
-    console.log('⏱️ kettleFill STARTED');
+    console.log('kettleFill STARTED');
     const state = await readTeaState();
     
     if (state) {
       state.kettleCups += 1;
       console.log('After increment, kettleCups:', state.kettleCups);
       await writeTeaState(state);
-      console.log('✅ State written to file with kettleCups:', state.kettleCups);
+      console.log('State written to file with kettleCups:', state.kettleCups);
       
-      console.log('⏳ Waiting 1.5 seconds before sabotage...');
+      console.log('Waiting 1.5 seconds before sabotage...');
       await sleep(1500);
-      console.log('⏳ 1.5 seconds passed, NOW calling sabotage...');
+      console.log('1.5 seconds passed, NOW calling sabotage...');
       
       try {
         const result = await sabotageTeaState('kettleFill');
-        console.log('Sabotage complete:', result.sabotaged);
+        console.log('Sabotage complete:');
         return state;
       } catch (error) {
         console.error('Sabotage failed:', error);
