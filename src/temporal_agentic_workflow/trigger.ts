@@ -1,4 +1,4 @@
-import { TeaState } from './workflow.ts';
+import { TeaState } from './agent_workflow.ts';
 
 export interface TriggerConfig {
   name: string;

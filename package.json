@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "worker": "node --loader ts-node/esm src/temporal_direct_workflow/worker.ts",
     "server": "node --loader ts-node/esm src/temporal_direct_workflow/server.ts",
-    "temporal:start": "temporal server start-dev"
+    "temporal:start": "temporal server start-dev",
+    "agent_worker": "node --loader ts-node/esm src/temporal_agentic_workflow/agent_worker.ts",
+    "agent_server": "node --loader ts-node/esm src/temporal_agentic_workflow/agent_server.ts"
   },
   "keywords": [],
   "author": "",

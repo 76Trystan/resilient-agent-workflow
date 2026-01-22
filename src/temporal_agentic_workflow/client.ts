@@ -39,7 +39,7 @@ export interface WorkflowHandle {
 }
 
 class BrowserTemporalClient {
-  private apiUrl = 'http://localhost:3000/api';
+  private apiUrl = 'http://localhost:3001/api'; // ⚠️ Change 3001 to your agentic server port
 
   async checkConnection(): Promise<boolean> {
     try {

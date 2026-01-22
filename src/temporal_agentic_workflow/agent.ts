@@ -1,4 +1,4 @@
-import { TeaState } from './workflow.ts';
+import { TeaState } from './agent_workflow.ts';
 import { AgentMemory } from './agent_memory.ts';
 import {
   createRecoveryChain,

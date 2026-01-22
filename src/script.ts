@@ -2,8 +2,8 @@ import { ManualProcessHandler } from './processes/manual'
 import { DirectProcessHandler } from './processes/direct'
 import { DirectTemporalProcessHandler } from './temporal_direct_workflow/direct_temporal'
 import { temporalClient } from './temporal_direct_workflow/client'
-//import { DirectTemporalProcessHandler } from './temporal_agentic_workflow/agent_temporal'
-//import { temporalClient } from './temporal_agentic_workflow/client'
+import { AgenticTemporalProcessHandler } from './temporal_agentic_workflow/agent_temporal'
+import { temporalClient as agenticTemporalClient } from './temporal_agentic_workflow/client'
 
 // Dependency and Action Definitions
 export const FUNCTIONS = [
@@ -230,27 +230,43 @@ class TeaProcessApp {
     manualProcessHandler: ManualProcessHandler | null = null;
     directProcessHandler: DirectProcessHandler | null = null;
     directTemporalProcessHandler: DirectTemporalProcessHandler | null = null;
+    agenticTemporalProcessHandler: AgenticTemporalProcessHandler | null = null;
     temporalClientReady = false;
+    agenticTemporalClientReady = false;
 
     constructor() {
         this.stateManager = new TeaStateManager();
         this.toggleHandler = new ToggleHandler(this.stateManager);
         this.counterHandler = new CounterHandler();
         this.eventManager = new EventManager(this.toggleHandler, this.counterHandler);
-        this.initTemporalClient();
+        this.initTemporalClients();
     }
 
-    private async initTemporalClient() {
+    private async initTemporalClients() {
+        // Check direct temporal client
         try {
             const isConnected = await temporalClient.checkConnection();
             this.temporalClientReady = isConnected;
             if (isConnected) {
-                console.log('Temporal server connected');
+                console.log('Direct Temporal server connected');
             } else {
-                console.warn('Temporal server not available. Temporal workflows may not work.');
+                console.warn('Direct Temporal server not available.');
             }
         } catch (error) {
-            console.warn('Failed to check Temporal connection:', error);
+            console.warn('Failed to check Direct Temporal connection:', error);
+        }
+
+        // Check agentic temporal client
+        try {
+            const isConnected = await agenticTemporalClient.checkConnection();
+            this.agenticTemporalClientReady = isConnected;
+            if (isConnected) {
+                console.log('Agentic Temporal server connected');
+            } else {
+                console.warn('Agentic Temporal server not available.');
+            }
+        } catch (error) {
+            console.warn('Failed to check Agentic Temporal connection:', error);
         }
     }
 
@@ -329,7 +345,14 @@ class TeaProcessApp {
                 if (this.temporalClientReady) {
                     this.startDirectTemporalProcess();
                 } else {
-                    alert('Temporal client not connected. Please ensure Temporal server is running.');
+                    alert('Direct Temporal client not connected. Please ensure Temporal server is running on port 3000.');
+                    (e.target as HTMLSelectElement).value = 'none';
+                }
+            } else if (value === 'agentic_temporal') {
+                if (this.agenticTemporalClientReady) {
+                    this.startAgenticTemporalProcess();
+                } else {
+                    alert('Agentic Temporal client not connected. Please ensure Agentic server is running on port 3001 and Ollama is serving on port 11434.');
                     (e.target as HTMLSelectElement).value = 'none';
                 }
             } else {
@@ -368,6 +391,16 @@ class TeaProcessApp {
         this.directTemporalProcessHandler.enable();
     }
 
+    private startAgenticTemporalProcess() {
+        if (!this.agenticTemporalProcessHandler) {
+            this.agenticTemporalProcessHandler = new AgenticTemporalProcessHandler(this.stateManager, this.completedFunctions);
+            this.agenticTemporalProcessHandler.init();
+        }
+
+        this.resetProcessState();
+        this.agenticTemporalProcessHandler.enable();
+    }
+
     private stopCurrentProcess() {
         if (this.manualProcessHandler) {
             this.manualProcessHandler.disable();
@@ -377,6 +410,9 @@ class TeaProcessApp {
         }
         if (this.directTemporalProcessHandler) {
             this.directTemporalProcessHandler.disable();
+        }
+        if (this.agenticTemporalProcessHandler) {
+            this.agenticTemporalProcessHandler.disable();
         }
     }
 
@@ -418,6 +454,9 @@ class TeaProcessApp {
             }
             if (this.directTemporalProcessHandler) {
                 this.directTemporalProcessHandler.reset();
+            }
+            if (this.agenticTemporalProcessHandler) {
+                this.agenticTemporalProcessHandler.reset();
             }
             
             console.log('Reset complete');

@@ -115,13 +115,13 @@ export async function teaMakingWorkflow(input: WorkflowInput): Promise<WorkflowO
           completedFunctions
         );
         
-        log.info(`🤖 Agent Analysis: ${decision.analysis}`);
+        log.info(`Agent Analysis: ${decision.analysis}`);
         log.info(`   Confidence: ${(decision.confidence * 100).toFixed(1)}%`);
         
         // Only apply corrections if confidence is reasonable
         if (decision.confidence > 0.3 && Object.keys(decision.newState).length > 0) {
           Object.assign(state, decision.newState);
-          log.info(`✅ Applied correction: ${decision.action}`);
+          log.info(`Applied correction: ${decision.action}`);
           
           // Record in memory (with LLM flag)
           agentMemory.recordAction(
@@ -136,7 +136,7 @@ export async function teaMakingWorkflow(input: WorkflowInput): Promise<WorkflowO
           
           await sleep(500);
         } else if (decision.confidence <= 0.3) {
-          log.warn(`⚠️  Agent confidence too low (${decision.confidence}), skipping correction`);
+          log.warn(`Agent confidence too low (${decision.confidence}), skipping correction`);
         }
       } catch (error) {
         log.error(`Agent error: ${(error as Error).message}`);
@@ -153,7 +153,7 @@ export async function teaMakingWorkflow(input: WorkflowInput): Promise<WorkflowO
       }
     } else {
       // Happy path - no issues, no agent needed
-      log.info(`✅ ${stepName} completed without issues`);
+      log.info(`${stepName} completed without issues`);
     }
     
     completedFunctions.push(stepName);
