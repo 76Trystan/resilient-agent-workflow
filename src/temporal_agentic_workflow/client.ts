@@ -1,14 +1,3 @@
-import { Connection, Client } from '@temporalio/client';
-
-export interface WorkflowHandle {
-  workflowId: string;
-  updateState(newState: any): Promise<void>;
-  logActivity(activity: string): Promise<void>;
-  getProgress(): Promise<{ completedFunctions: string[]; state: any }>;
-  result(): Promise<any>;
-  terminate(): Promise<void>;
-}
-
 export interface TeaState {
   hotWater: number;
   coldWater: number;
@@ -29,69 +18,116 @@ export interface TeaState {
   toggleDrunk: boolean;
 }
 
-let client: Client | null = null;
-
-async function getClient(): Promise<Client> {
-  if (client) {
-    return client;
-  }
-
-  const connection = await Connection.connect({ address: 'localhost:7233' });
-  client = new Client({ connection });
-  return client;
+export interface WorkflowOutput {
+  completedFunctions: string[];
+  status: 'completed' | 'stopped' | 'failed';
+  finalState: TeaState;
+  errors: string[];
 }
 
-export const temporalClient = {
+export interface WorkflowInput {
+  teaState: TeaState;
+}
+
+export interface WorkflowHandle {
+  workflowId: string;
+  updateState: (newState: Partial<TeaState>) => Promise<void>;
+  logActivity: (activity: string) => Promise<void>;
+  getProgress: () => Promise<{ completedFunctions: string[]; state: TeaState }>;
+  result: () => Promise<WorkflowOutput>;
+  terminate: () => Promise<void>;
+}
+
+class BrowserTemporalClient {
+  private apiUrl = 'http://localhost:3000/api';
+
   async checkConnection(): Promise<boolean> {
     try {
-      const c = await getClient();
-      await c.connection.getServerVersion();
-      return true;
+      const response = await fetch(`${this.apiUrl}/health`);
+      const data = await response.json();
+      return data.temporalConnected;
     } catch {
       return false;
     }
-  },
+  }
 
-  async startWorkflow(input: { teaState: TeaState }): Promise<WorkflowHandle> {
-    const c = await getClient();
-    const { teaMakingAgentWorkflow } = await import('./agent_workflow.ts');
-
-    const handle = await c.workflow.start(teaMakingAgentWorkflow, {
-      args: [input],
-      taskQueue: 'tea-making',
-      workflowId: `tea-agent-workflow-${Date.now()}`,
+  async startWorkflow(input: WorkflowInput): Promise<WorkflowHandle> {
+    const response = await fetch(`${this.apiUrl}/workflow/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
     });
 
-    const workflowId = handle.workflowId;
-    const completedFunctions: string[] = [];
+    if (!response.ok) {
+      throw new Error('Failed to start workflow');
+    }
+
+    const { workflowId } = await response.json();
 
     return {
       workflowId,
-      async updateState(newState: any) {
-        await handle.signal('updateState', newState);
-      },
-      async logActivity(activity: string) {
-        completedFunctions.push(activity);
-      },
-      async getProgress() {
-        try {
-          const result = await handle.result();
-          return {
-            completedFunctions: result.completedFunctions || [],
-            state: result.finalState || {},
-          };
-        } catch {
-          return { completedFunctions, state: {} };
+      updateState: async (newState: Partial<TeaState>) => {
+        const res = await fetch(`${this.apiUrl}/workflow/${workflowId}/update-state`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newState),
+        });
+
+        if (!res.ok) {
+          throw new Error('Failed to update workflow state');
         }
       },
-      async result() {
-        return handle.result();
+      logActivity: async (activity: string) => {
+        const res = await fetch(`${this.apiUrl}/workflow/${workflowId}/log-activity`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ activity }),
+        });
+
+        if (!res.ok) {
+          throw new Error('Failed to log activity');
+        }
       },
-      async terminate() {
-        await handle.terminate();
+      getProgress: async () => {
+        const res = await fetch(`${this.apiUrl}/workflow/${workflowId}/progress`);
+        if (res.ok) {
+          const data = await res.json();
+          return { completedFunctions: data.completedFunctions, state: data.state };
+        }
+        return { completedFunctions: [], state: {} as TeaState };
+      },
+      result: async () => {
+        return new Promise((resolve, reject) => {
+          const poll = async () => {
+            try {
+              const res = await fetch(`${this.apiUrl}/workflow/${workflowId}/result`);
+              
+              if (res.ok) {
+                const data = await res.json();
+                resolve(data);
+              } else if (res.status === 202) {
+                setTimeout(poll, 500);
+              } else {
+                reject(new Error('Failed to get workflow result'));
+              }
+            } catch (error) {
+              reject(error);
+            }
+          };
+          poll();
+        });
+      },
+      terminate: async () => {
+        const response = await fetch(`${this.apiUrl}/workflow/${workflowId}/terminate`, {
+          method: 'POST',
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to terminate workflow');
+        }
       },
     };
-  },
-};
+  }
+}
 
-export type { WorkflowHandle };
+export const temporalClient = new BrowserTemporalClient();
