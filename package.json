@@ -12,7 +12,8 @@
     "server": "node --loader ts-node/esm src/temporal_direct_workflow/server.ts",
     "temporal:start": "temporal server start-dev",
     "agent_worker": "node --loader ts-node/esm src/temporal_agentic_workflow/agent_worker.ts",
-    "agent_server": "node --loader ts-node/esm src/temporal_agentic_workflow/agent_server.ts"
+    "agent_server": "node --loader ts-node/esm src/temporal_agentic_workflow/agent_server.ts",
+    "start:all": "concurrently \"npm run temporal:start\" \"npm run worker\" \"npm run server\" \"npm run agent_worker\" \"npm run agent_server\""
   },
   "keywords": [],
   "author": "",
