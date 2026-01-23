@@ -64,7 +64,7 @@ export const agentActivities = {
       console.log('  Corrections:', decision.newState);
       console.log('  Confidence:', (decision.confidence * 100).toFixed(1) + '%');
 
-      // ✨ CRITICAL: Apply corrections to workflow state AND persist to file
+      // Apply corrections to workflow state AND persist to file
       if (decision.confidence > 0.3 && Object.keys(decision.newState).length > 0) {
         const correctedState = {
           ...currentState,
@@ -72,16 +72,16 @@ export const agentActivities = {
         };
         
         console.log('Applying fix');
-        console.log('  New kettleCups value:', correctedState.kettleCups);
+        console.log('New kettleCups value:', correctedState.kettleCups);
         
-        // Persist the corrected state to data.json
+        // Continue the corrected state to data.json
         await writeTeaState(correctedState);
-        console.log('Correction persisted to data.json');
+        console.log('Correction continued to data.json');
       } else {
         console.log('Confidence too low or no corrections needed');
       }
 
-      // Record in memory
+      // Record in agent memory
       agentMemory.recordAction(
         triggerName,
         agentType,
