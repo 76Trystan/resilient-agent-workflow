@@ -103,45 +103,6 @@ export async function teaMakingWorkflow(input: WorkflowInput): Promise<WorkflowO
     const result = await activityFn();
     await stateUpdate(result);
     
-    // Evaluate triggers and invoke agent if needed
-    await sleep(500);
-    
-    const triggeredCondition = evaluateTriggers(state, stepName);
-    
-    if (triggeredCondition) {
-      log.info(`Trigger detected: ${triggeredCondition.name}`);
-      log.info(`Description: ${triggeredCondition.description}`);
-      
-      try {
-        // Call agent activity instead of running agent directly in workflow
-        const decision = await agentActivityProxy.invokeAgent(
-          triggeredCondition.agentType,
-          triggeredCondition.name,
-          triggeredCondition.description,
-          state,
-          completedFunctions
-        );
-        
-        log.info(`Agent Analysis: ${decision.analysis}`);
-        log.info(`Confidence: ${(decision.confidence * 100).toFixed(1)}%`);
-        
-        // Only apply corrections if confidence is reasonable
-        if (decision.confidence > 0.3 && Object.keys(decision.newState).length > 0) {
-          Object.assign(state, decision.newState);
-          log.info(`Applied correction: ${decision.action}`);
-          await sleep(500);
-        } else if (decision.confidence <= 0.3) {
-          log.warn(`Agent confidence too low (${decision.confidence}), skipping correction`);
-        }
-      } catch (error) {
-        log.error(`Agent error: ${(error as Error).message}`);
-        errors.push(`Agent error on ${stepName}: ${(error as Error).message}`);
-      }
-    } else {
-      // Happy path - no issues, no agent needed
-      log.info(`${stepName} completed without issues`);
-    }
-    
     completedFunctions.push(stepName);
   };
 
@@ -159,10 +120,71 @@ export async function teaMakingWorkflow(input: WorkflowInput): Promise<WorkflowO
       }
     });
     
-    // 3. kettleTurnOn (depends on: kettleFill)
-    await executeStep('kettleTurnOn', () => activities.kettleTurnOn(), () => {
-      state.toggleSwitchedOn = true;
-    });
+    // 3. kettleTurnOn - Try activity, if it fails check triggers and invoke agent
+    let kettleTurnOnSuccess = false;
+    let kettleTurnOnAttempts = 0;
+    const maxKettleTurnOnAttempts = 3;
+
+    while (!kettleTurnOnSuccess && kettleTurnOnAttempts < maxKettleTurnOnAttempts) {
+      try {
+        kettleTurnOnAttempts++;
+        log.info(`kettleTurnOn attempt ${kettleTurnOnAttempts}/${maxKettleTurnOnAttempts}`);
+        
+        await executeStep('kettleTurnOn', () => activities.kettleTurnOn(), () => {
+          state.toggleSwitchedOn = true;
+        });
+        
+        kettleTurnOnSuccess = true;
+        log.info('kettleTurnOn succeeded');
+      } catch (error) {
+        log.error(`kettleTurnOn failed: ${(error as Error).message}`);
+        errors.push(`kettleTurnOn failed: ${(error as Error).message}`);
+        
+        // Activity failed, now check if agent can fix it
+        if (kettleTurnOnAttempts < maxKettleTurnOnAttempts) {
+          log.info('Attempting agent recovery...');
+          
+          const triggeredCondition = evaluateTriggers(state, 'kettleTurnOn');
+          
+          if (triggeredCondition) {
+            log.info(`Trigger detected: ${triggeredCondition.name}`);
+            
+            try {
+              const decision = await agentActivityProxy.invokeAgent(
+                triggeredCondition.agentType,
+                triggeredCondition.name,
+                triggeredCondition.description,
+                state,
+                completedFunctions
+              );
+              
+              log.info(`Agent Analysis: ${decision.analysis}`);
+              log.info(`Confidence: ${(decision.confidence * 100).toFixed(1)}%`);
+              
+              if (decision.confidence > 0.3 && Object.keys(decision.newState).length > 0) {
+                Object.assign(state, decision.newState);
+                log.info(`Applied correction: ${decision.action}`);
+                await sleep(500);
+              } else if (decision.confidence <= 0.3) {
+                log.warn(`Agent confidence too low (${decision.confidence}), skipping correction`);
+              }
+            } catch (agentError) {
+              log.error(`Agent error: ${(agentError as Error).message}`);
+              errors.push(`Agent error on kettleTurnOn: ${(agentError as Error).message}`);
+            }
+          } else {
+            log.warn('No trigger detected for kettleTurnOn failure, cannot recover');
+          }
+          
+          // Wait before retrying kettleTurnOn
+          await sleep(1000);
+        }
+      }
+    }
+
+    if (!kettleTurnOnSuccess) {
+      throw new Error('kettleTurnOn failed after ' + maxKettleTurnOnAttempts + ' attempts with agent recovery');
+    }
     
     // 4. kettleWaitWhistle (depends on: kettleTurnOn)
     await executeStep('kettleWaitWhistle', () => activities.kettleWaitWhistle(), () => {

@@ -94,16 +94,20 @@ export const activities = {
     const state = await readTeaState();
     
     if (state) {
-      // ✨ NEW: Validate that kettle has water
-      if (state.kettleCups < 1) {
-        const errorMsg = `ERROR: Cannot turn on kettle without water! kettleCups = ${state.kettleCups}. Agent failed to recover state.`;
+      // Check if kettle has water (kettleCups >= 1)
+      if (state.kettleCups >= 1) {
+        console.log('SUCCESS: Kettle has water (kettleCups: ' + state.kettleCups + '), turning on');
+        state.toggleSwitchedOn = true;
+        await writeTeaState(state);
+        return;
+      } else {
+        // No water - fail immediately
+        const errorMsg = 'ERROR: Cannot turn on kettle without water! kettleCups = ' + state.kettleCups + '. Workflow will invoke agent to fix this.';
         console.error(errorMsg);
         throw new Error(errorMsg);
       }
-      
-      console.log('Kettle has water (kettleCups:', state.kettleCups + '), turning on');
-      state.toggleSwitchedOn = true;
-      await writeTeaState(state);
+    } else {
+      throw new Error('Failed to read tea state from data.json');
     }
   },
 

@@ -3,7 +3,6 @@ import { AgentMemory } from './agent_memory.ts';
 import {
     createRecoveryChain,
 } from './agent_config.ts';
-import { response } from 'express';
 
 export type AgentType = 'recovery';
 
@@ -23,6 +22,13 @@ export class RecoveryAgent {
         triggerDescription: string,
         currentState: TeaState
     ): Promise<AgentDecision> {
+        // TEMPORARY TEST MODE: Force agent to fail
+        const FORCE_AGENT_FAILURE = false;
+        if (FORCE_AGENT_FAILURE) {
+            console.log('\n[TEST MODE] Forcing agent failure to test retry logic...\n');
+            throw new Error('TEST MODE: Agent failure forced for testing purposes');
+        }
+
         try {
             const response = await createRecoveryChain().invoke({
                 state: JSON.stringify(currentState, null, 2),
