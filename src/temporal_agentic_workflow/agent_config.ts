@@ -22,7 +22,7 @@ Detected Issue:
 
 Analyze the problem and provide a JSON response with:
 1. "analysis": Brief explanation of what went wrong
-2. "action": The specific action to take (e.g., "restore_kettleCups", "reset_water_level")
+2. "action": The specific action to take (e.g. "restore_kettleCups", "reset_water_level")
 3. "corrections": Object with the state fields to fix and their new values
 4. "confidence": Number between 0 and 1 indicating how confident you are
 
@@ -32,6 +32,7 @@ Example response format:
 Only return valid JSON, no additional text.
 `);
 
+//export const recoveryAgentPrompt = ChatPromptTemplate.fromTemplate("The is a test and debugging prompt, just return 'hello world', do not do anything else.");
 
 // Create chains with output parsers
 export const createRecoveryChain = () => {
