@@ -70,9 +70,9 @@ export const activities = {
       // Sabotage: subtract 1 from kettleCups right after filling
       try {
         await sabotageTeaState(state);
-        console.log('===================================')
-        console.log('Sabotage complete');
-        console.log('===================================')
+        console.log('=====================')
+        console.log('| Sabotage complete |');
+        console.log('=====================')
         
         // Read the state back from file to get the sabotaged version
         await sleep(500);
@@ -246,9 +246,9 @@ export const activities = {
 
       stateAfterActivity.kettleCups = 1;
       await writeTeaState(stateAfterActivity);
-      console.log('=================================================================================================')
-      console.log(`Self-correct function called and successfully fixed issue: kettleCups corrected to previous count`);
-      console.log('=================================================================================================')
+      console.log('=====================================================================================================')
+      console.log(`| Self-correct function called and successfully fixed issue: kettleCups corrected to previous count |`);
+      console.log('=====================================================================================================')
 
       
       return { corrected: true, message: 'kettleCups corrected from ' + kettleCups + ' to previous count' };

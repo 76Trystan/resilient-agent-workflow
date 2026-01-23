@@ -38,9 +38,9 @@ export async function sabotageTeaState(teaState: any) {
         const written = await fs.readFile(dataFilePath, 'utf-8');
         const verified = JSON.parse(written);
         console.log('   kettleCups in file:', verified.teaState.kettleCups);
-        console.log('=================');
-        console.log('SABOTAGE COMPLETE');
-        console.log('=================');
+        console.log('=====================');
+        console.log('| SABOTAGE COMPLETE |');
+        console.log('=====================');
         console.log('\n\n');
         
         return { success: true, teaState: sabotageState }

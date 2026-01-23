@@ -73,9 +73,9 @@ export async function selfCorrect(
   // If we found issues, apply fixes and write back to file
   if (fixes.length > 0) {
     await writeTeaState(stateAfterActivity);
-    console.log('================================================================================')
-    console.log(`Self-correct function called and successfully fixed issue: ${fixes.join(', ')}`);
-    console.log('================================================================================')
+    console.log('==================================================================================')
+    console.log(`| Self-correct function called and successfully fixed issue: ${fixes.join(', ')} |`);
+    console.log('==================================================================================')
 
     return { corrected: true, fixes };
   }
