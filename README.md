@@ -232,7 +232,7 @@ try {
 }
  ```
 
-Limitations Include:
+Limitations:
 
 - Path Recovery requires dependency checks and recovery functions for each problem potentially encounters (Not Scalable).
 - Unhappy paths most likely lead to workflow failure.
