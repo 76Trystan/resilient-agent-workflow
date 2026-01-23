@@ -4,7 +4,7 @@ export interface TriggerConfig {
   name: string;
   condition: (state: TeaState, activityName: string) => boolean;
   agentType: 'recovery';
-  severity: 'low' | 'medium' | 'high';
+  //severity: 'low' | 'medium' | 'high';
   description: string; // For LLM context
 }
 
@@ -15,7 +15,7 @@ export const triggers: TriggerConfig[] = [
       return activityName === 'kettleFill' && state.kettleCups < 1;
     },
     agentType: 'recovery',
-    severity: 'high',
+    //severity: 'high',
     description: 'kettleCups value dropped below 1 after fill operation. This indicates state corruption or sabotage.',
   },
   {
@@ -24,7 +24,7 @@ export const triggers: TriggerConfig[] = [
       return (state.hotWater < 0 || state.coldWater < 0);
     },
     agentType: 'recovery',
-    severity: 'high',
+    //severity: 'high',
     description: 'Water levels are negative, which is physically impossible. Water levels must be clamped to zero or corrected.',
   },
 ];
