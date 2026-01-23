@@ -90,9 +90,18 @@ export const activities = {
 
   async kettleTurnOn(): Promise<void> {
     await sleep(1000);
-    console.log('kettleTurnOn');
+    console.log('kettleTurnOn - Checking preconditions');
     const state = await readTeaState();
+    
     if (state) {
+      // ✨ NEW: Validate that kettle has water
+      if (state.kettleCups < 1) {
+        const errorMsg = `ERROR: Cannot turn on kettle without water! kettleCups = ${state.kettleCups}. Agent failed to recover state.`;
+        console.error(errorMsg);
+        throw new Error(errorMsg);
+      }
+      
+      console.log('Kettle has water (kettleCups:', state.kettleCups + '), turning on');
       state.toggleSwitchedOn = true;
       await writeTeaState(state);
     }

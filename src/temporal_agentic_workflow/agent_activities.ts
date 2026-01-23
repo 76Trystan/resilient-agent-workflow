@@ -1,9 +1,13 @@
 import { TeaState } from './agent_workflow.ts';
 import { AgentPool } from './agent.ts';
 import { AgentMemory } from './agent_memory.ts';
+import { readFile, writeFile } from 'fs/promises';
+import path from 'path';
 
 const agentMemory = new AgentMemory();
 const agentPool = new AgentPool(agentMemory);
+
+const dataFilePath = path.join(process.cwd(), 'data.json');
 
 export interface AgentDecision {
   action: string;
@@ -11,6 +15,24 @@ export interface AgentDecision {
   newState: Partial<TeaState>;
   confidence: number;
   reasoning: string;
+}
+
+async function writeTeaState(state: Record<string, any>) {
+  try {
+    const data = {
+      teaState: state
+    };
+    
+    await writeFile(
+      dataFilePath,
+      JSON.stringify(data, null, 2),
+      'utf-8'
+    );
+    console.log('Tea state persisted to file:', state);
+  } catch (error) {
+    console.error('Error writing tea state:', error);
+    throw error;
+  }
 }
 
 export const agentActivities = {
@@ -22,6 +44,12 @@ export const agentActivities = {
     progress: string[]
   ): Promise<AgentDecision> {
     try {
+      console.log('==============');
+      console.log('AGENT INVOKED');
+      console.log('==============');
+      console.log('Trigger:', triggerName);
+      console.log('Current state kettleCups:', currentState.kettleCups);
+
       const decision = await agentPool.invokeAgent(
         agentType,
         triggerName,
@@ -30,9 +58,28 @@ export const agentActivities = {
         progress
       );
 
-      console.log(`Agent decision: ${decision.action}`);
-      console.log(`Confidence: ${(decision.confidence * 100).toFixed(1)}%`);
-      console.log(`Analysis: ${decision.analysis}`);
+      console.log('Agent Decision:');
+      console.log('  Action:', decision.action);
+      console.log('  Analysis:', decision.analysis);
+      console.log('  Corrections:', decision.newState);
+      console.log('  Confidence:', (decision.confidence * 100).toFixed(1) + '%');
+
+      // ✨ CRITICAL: Apply corrections to workflow state AND persist to file
+      if (decision.confidence > 0.3 && Object.keys(decision.newState).length > 0) {
+        const correctedState = {
+          ...currentState,
+          ...decision.newState
+        };
+        
+        console.log('Applying fix');
+        console.log('  New kettleCups value:', correctedState.kettleCups);
+        
+        // Persist the corrected state to data.json
+        await writeTeaState(correctedState);
+        console.log('Correction persisted to data.json');
+      } else {
+        console.log('Confidence too low or no corrections needed');
+      }
 
       // Record in memory
       agentMemory.recordAction(
@@ -44,6 +91,10 @@ export const agentActivities = {
         decision.reasoning,
         true
       );
+
+      console.log('==============');
+      console.log('AGENT COMPLETE');
+      console.log('==============\n');
 
       return decision;
     } catch (error) {

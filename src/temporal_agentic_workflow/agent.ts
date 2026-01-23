@@ -15,8 +15,6 @@ export interface AgentDecision {
 }
 
 export class RecoveryAgent {
-  private chain = createRecoveryChain();
-
   constructor(private memory: AgentMemory) {}
 
   async analyze(
@@ -25,14 +23,12 @@ export class RecoveryAgent {
     currentState: TeaState
   ): Promise<AgentDecision> {
     try {
-      // Call LLM through LangChain
-      const response = await this.chain.invoke({
+      const response = await createRecoveryChain().invoke({
         state: JSON.stringify(currentState, null, 2),
         triggerName,
         triggerDescription,
       });
 
-      // Parse LLM response
       const parsed = JSON.parse(response);
 
       return {
@@ -60,8 +56,22 @@ export class RecoveryAgent {
         action: 'restore_kettleCups',
         analysis: 'Fallback: kettleCups corrupted, restoring to 1',
         newState: { kettleCups: 1 },
-        confidence: 0.85,
-        reasoning: 'LLM failed, using fallback rule-based recovery',
+        confidence: 0.95,
+        reasoning: 'Fallback rule-based recovery: kettleCups was sabotaged, restoring to minimum safe value',
+      };
+    }
+
+    if (triggerName === 'negative_water_level') {
+      const fixedState: Partial<TeaState> = {};
+      if (currentState.hotWater < 0) fixedState.hotWater = 0;
+      if (currentState.coldWater < 0) fixedState.coldWater = 0;
+      
+      return {
+        action: 'clamp_water_levels',
+        analysis: 'Fallback: Water levels cannot be negative, clamping to 0',
+        newState: fixedState,
+        confidence: 0.99,
+        reasoning: 'Fallback rule-based recovery: Water levels clamped to 0',
       };
     }
 
@@ -89,9 +99,10 @@ export class AgentPool {
     currentState: TeaState,
     progress?: string[]
   ): Promise<AgentDecision> {
-    switch (agentType) {
-      case 'recovery':
-        return this.recovery.analyze(triggerName, triggerDescription, currentState);
+    if (agentType === 'recovery') {
+      return this.recovery.analyze(triggerName, triggerDescription, currentState);
     }
+    
+    throw new Error(`Unknown agent type: ${agentType}`);
   }
 }
