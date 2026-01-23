@@ -1,14 +1,13 @@
 import { readFile, writeFile } from "fs/promises";
 import path from "path";
-import { fileURLToPath } from "url";
-import { sabotageTeaState } from "../sabotage.ts";
+import { sabotageTeaState } from "./sabotage.ts";
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const dataFilePath = path.join(__dirname, '../../data.json');
+// Use process.cwd() to get project root
+const dataFilePath = path.join(process.cwd(), 'data.json');
 
+// Helper function to read current state
 async function readTeaState() {
   try {
     const content = await readFile(dataFilePath, 'utf-8');
@@ -20,11 +19,19 @@ async function readTeaState() {
   }
 }
 
+// Helper function to write updated state
 async function writeTeaState(state: Record<string, any>) {
   try {
-    const data = { teaState: state };
-    await writeFile(dataFilePath, JSON.stringify(data, null, 2), 'utf-8');
-    console.log('Tea state updated');
+    const data = {
+      teaState: state
+    };
+    
+    await writeFile(
+      dataFilePath,
+      JSON.stringify(data, null, 2),
+      'utf-8'
+    );
+    console.log('Tea state updated:', state);
   } catch (error) {
     console.error('Error writing tea state:', error);
   }
@@ -42,24 +49,37 @@ export const activities = {
   },
 
   async kettleFill(): Promise<any> {
-    await sleep(1000);
     console.log('kettleFill STARTED');
+    await sleep(1000);
+    console.log('kettleFill started');
     const state = await readTeaState();
+    console.log('Current state:', state);
     
     if (state) {
       state.kettleCups += 1;
       console.log('After increment, kettleCups:', state.kettleCups);
+      
       await writeTeaState(state);
       console.log('State written to file with kettleCups:', state.kettleCups);
       
+      // Wait 1.5 seconds before sabotage so you can see the change
       console.log('Waiting 1.5 seconds before sabotage...');
       await sleep(1500);
       console.log('1.5 seconds passed, NOW calling sabotage...');
       
+      // Sabotage: subtract 1 from kettleCups right after filling
       try {
-        const result = await sabotageTeaState('kettleFill');
-        console.log('Sabotage complete:');
-        return state;
+        await sabotageTeaState(state);
+        console.log('===================================')
+        console.log('Sabotage complete');
+        console.log('===================================')
+        
+        // Read the state back from file to get the sabotaged version
+        await sleep(500);
+        const sabotageState = await readTeaState();
+        console.log('State read after sabotage, kettleCups now:', sabotageState?.kettleCups);
+        
+        return sabotageState || state;
       } catch (error) {
         console.error('Sabotage failed:', error);
         return state;
@@ -88,67 +108,34 @@ export const activities = {
     }
   },
 
-  async cupAddTeabag(): Promise<any> {
+  async cupAddTeabag(): Promise<void> {
     await sleep(1000);
     console.log('cupAddTeabag');
     const state = await readTeaState();
-    
     if (state) {
       state.teabag += 1;
       await writeTeaState(state);
-      await sleep(1500);
-      
-      try {
-        await sabotageTeaState('cupAddTeabag');
-        return state;
-      } catch (error) {
-        console.error('Sabotage failed:', error);
-        return state;
-      }
     }
-    return state;
   },
 
-  async cupAddWater(): Promise<any> {
+  async cupAddWater(): Promise<void> {
     await sleep(1000);
     console.log('cupAddWater');
     const state = await readTeaState();
-    
     if (state) {
       state.hotWater += 1;
       await writeTeaState(state);
-      await sleep(1500);
-      
-      try {
-        await sabotageTeaState('cupAddWater');
-        return state;
-      } catch (error) {
-        console.error('Sabotage failed:', error);
-        return state;
-      }
     }
-    return state;
   },
 
-  async cupMashTea(): Promise<any> {
+  async cupMashTea(): Promise<void> {
     await sleep(1000);
     console.log('cupMashTea');
     const state = await readTeaState();
-    
     if (state) {
       state.toggleMashed = true;
       await writeTeaState(state);
-      await sleep(1500);
-      
-      try {
-        await sabotageTeaState('cupMashTea');
-        return state;
-      } catch (error) {
-        console.error('Sabotage failed:', error);
-        return state;
-      }
     }
-    return state;
   },
 
   async cupRemoveTeabag(): Promise<void> {
@@ -156,7 +143,7 @@ export const activities = {
     console.log('cupRemoveTeabag');
     const state = await readTeaState();
     if (state) {
-      state.teabag = Math.max(0, state.teabag - 1);
+      state.teabag -= 1;
       await writeTeaState(state);
     }
   },
@@ -191,25 +178,14 @@ export const activities = {
     }
   },
 
-  async cupStir(): Promise<any> {
+  async cupStir(): Promise<void> {
     await sleep(1000);
     console.log('cupStir');
     const state = await readTeaState();
-    
     if (state) {
       state.toggleStirred = true;
       await writeTeaState(state);
-      await sleep(1500);
-      
-      try {
-        await sabotageTeaState('cupStir');
-        return state;
-      } catch (error) {
-        console.error('Sabotage failed:', error);
-        return state;
-      }
     }
-    return state;
   },
 
   async selfDrinkCup(): Promise<void> {
@@ -227,12 +203,12 @@ export const activities = {
     console.log('selfEmptyCup');
     const state = await readTeaState();
     if (state) {
-      state.toggleEmpty = true;
       state.hotWater = 0;
       state.coldWater = 0;
       state.milk = 0;
       state.sugar = 0;
       state.salt = 0;
+      state.toggleEmpty = true;
       await writeTeaState(state);
     }
   },
@@ -247,17 +223,29 @@ export const activities = {
     }
   },
 
-  async agentFixState(activityName: string, state: Record<string, any>, issues: string[]): Promise<boolean> {
-    console.log(`🤖 Agent activity called for ${activityName}`);
-    console.log(`Issues to fix: ${issues.join(', ')}`);
-    
-    try {
-      const { agentFixState: agentFix } = await import('./agent_activities.ts');
-      return agentFix(activityName, state, issues);
-    } catch (error) {
-      console.error(`Failed to call agent: ${(error as Error).message}`);
-      throw error;
+  async selfCorrect(activityName: string, stateAfterActivity: Record<string, any>): Promise<{ corrected: boolean; message: string }> {
+    if (activityName !== 'kettleFill') {
+      return { corrected: false, message: '' };
     }
+
+    const kettleCups = stateAfterActivity.kettleCups;
+    
+    if (kettleCups < 1) {
+      console.log(
+        `Self-correct detected issue: kettleFill expected kettleCups => 1, but it is ${kettleCups}`
+      );
+
+      stateAfterActivity.kettleCups = 1;
+      await writeTeaState(stateAfterActivity);
+      console.log('=================================================================================================')
+      console.log(`Self-correct function called and successfully fixed issue: kettleCups corrected to previous count`);
+      console.log('=================================================================================================')
+
+      
+      return { corrected: true, message: 'kettleCups corrected from ' + kettleCups + ' to previous count' };
+    }
+
+    return { corrected: false, message: '' };
   },
 };
 

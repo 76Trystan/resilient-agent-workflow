@@ -5,7 +5,7 @@ import {
   sleep,
   log,
 } from '@temporalio/workflow';
-import type { Activities } from './activities.ts';
+import type { Activities } from '../activities.ts';
 import type { agentActivities } from './agent_activities.ts';
 import { evaluateTriggers } from './trigger.ts';
 

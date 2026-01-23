@@ -15,7 +15,7 @@ export interface AgentDecision {
 
 export const agentActivities = {
   async invokeAgent(
-    agentType: 'recovery' | 'conflict' | 'optimizer',
+    agentType: 'recovery',
     triggerName: string,
     triggerDescription: string,
     currentState: TeaState,

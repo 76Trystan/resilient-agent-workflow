@@ -1,6 +1,6 @@
 import { Worker } from '@temporalio/worker';
 import * as workflow from './agent_workflow.ts';
-import { activities } from './activities.ts';
+import { activities } from '../activities.ts';
 import { agentActivities } from './agent_activities.ts';
 
 export async function startWorker() {

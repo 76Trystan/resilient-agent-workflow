@@ -3,7 +3,7 @@ import { TeaState } from './agent_workflow.ts';
 export interface TriggerConfig {
   name: string;
   condition: (state: TeaState, activityName: string) => boolean;
-  agentType: 'recovery' | 'conflict' | 'optimizer';
+  agentType: 'recovery';
   severity: 'low' | 'medium' | 'high';
   description: string; // For LLM context
 }
@@ -17,15 +17,6 @@ export const triggers: TriggerConfig[] = [
     agentType: 'recovery',
     severity: 'high',
     description: 'kettleCups value dropped below 1 after fill operation. This indicates state corruption or sabotage.',
-  },
-  {
-    name: 'toggleEmpty_conflict',
-    condition: (state: TeaState, activityName: string) => {
-      return activityName === 'selfDrinkCup' && state.toggleEmpty === true;
-    },
-    agentType: 'conflict',
-    severity: 'medium',
-    description: 'toggleEmpty is true when attempting to drink the cup. This is a logical conflict - cup cannot be both empty and drinkable.',
   },
   {
     name: 'negative_water_level',

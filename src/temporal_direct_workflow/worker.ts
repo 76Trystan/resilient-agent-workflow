@@ -1,6 +1,6 @@
 import { Worker } from '@temporalio/worker';
 import * as workflow from './workflow.ts';
-import { activities } from './activities.ts';
+import { activities } from '../activities.ts';
 
 export async function startWorker() {
   const worker = await Worker.create({

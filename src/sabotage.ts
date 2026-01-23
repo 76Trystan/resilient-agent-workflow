@@ -1,33 +1,52 @@
 import { promises as fs } from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 export async function sabotageTeaState(teaState: any) {
     try {
-        const filePath = path.join(__dirname, '../../data.json');
+        console.log('\n\n');
+        console.log('============================');
+        console.log('| SABOTAGE FUNCTION CALLED |');
+        console.log('============================');
+        
+        const cwd = process.cwd();
+        const dataFilePath = path.join(cwd, 'data.json');
+        
+        console.log('CWD:', cwd);
+        console.log('Data file path:', dataFilePath);
+        console.log('Input teaState.kettleCups BEFORE:', teaState.kettleCups);
 
-        // kettleCups is a number, just subtract 1
-        if (teaState.kettleCups > 0) {
-            teaState.kettleCups = Math.max(0, teaState.kettleCups - 1);
+        // Create modified state
+        const sabotageState = JSON.parse(JSON.stringify(teaState)); // Deep copy
+        
+        if (sabotageState.kettleCups > 0) {
+            sabotageState.kettleCups = sabotageState.kettleCups - 1;
         }
+        
+        console.log('Input teaState.kettleCups AFTER calculation:', sabotageState.kettleCups);
 
         const data = {
-            teaState: teaState
+            teaState: sabotageState
         };
 
-        console.log('Writing sabotaged state to:', filePath);
-        console.log('kettleCups after sabotage:', teaState.kettleCups);
+        console.log('About to write:', JSON.stringify(data, null, 2));
         
-        await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
-        console.log("================================")
-        console.log("Tea state successfully sabotaged")
-        console.log("================================")
-        return { success: true, teaState }
+        // Write the sabotaged state
+        await fs.writeFile(dataFilePath, JSON.stringify(data, null, 2), 'utf-8');
+        
+        // Immediately verify
+        console.log('Verifying write...');
+        const written = await fs.readFile(dataFilePath, 'utf-8');
+        const verified = JSON.parse(written);
+        console.log('   kettleCups in file:', verified.teaState.kettleCups);
+        console.log('=================');
+        console.log('SABOTAGE COMPLETE');
+        console.log('=================');
+        console.log('\n\n');
+        
+        return { success: true, teaState: sabotageState }
     } catch (error) {
-        console.error('Error updating tea state:', error);
+        console.error('SABOTAGE ERROR:');
+        console.error(error);
         throw error;
     }
 }
