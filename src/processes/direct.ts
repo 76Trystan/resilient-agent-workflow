@@ -65,6 +65,8 @@ export class DirectProcessHandler {
         if (!func) return { valid: false, missing: [] };
 
         const missing: string[] = [];
+        const stateManager = this.stateManager;
+        
         for (const dep of func.dependencies) {
             if (dep === 'toggleMilk') {
                 if (!document.getElementById('toggleMilk')?.classList.contains('active')) {
@@ -78,6 +80,10 @@ export class DirectProcessHandler {
                 if (!document.getElementById('toggleSalt')?.classList.contains('active')) {
                     missing.push('Salt toggle must be ON');
                 }
+            } else if (dep === 'kettleCups') {
+                // kettleCups is a counter - just check it exists (it's auto-initialized to 0)
+                // This dependency is actually just a marker, no real check needed
+                continue;
             } else if (!this.completedFunctions.includes(dep)) {
                 missing.push(`${dep} must be completed first`);
             }
@@ -87,6 +93,9 @@ export class DirectProcessHandler {
     }
 
     private executeStep() {
+        console.log(`[executeStep] currentStep: ${this.currentStep}, total functions: ${FUNCTIONS.length}`);
+        
+        // Check if we're done
         if (this.currentStep >= FUNCTIONS.length) {
             this.showMessage('All steps completed!', 'success');
             this.isRunning = false;
@@ -101,7 +110,10 @@ export class DirectProcessHandler {
             return;
         }
 
+        // Check for failure conditions
         const func_1 = FUNCTIONS[this.currentStep];
+        console.log(`[executeStep] Current function: ${func_1.name}`);
+        
         if (func_1.name === 'selfDrinkCup' && document.getElementById('toggleEmpty')?.classList.contains('active')) {
             this.showMessage('oh no cup empty', 'error');
             this.stop();
@@ -114,6 +126,7 @@ export class DirectProcessHandler {
             return;
         }
 
+        // Skip optional steps that aren't requested
         while (this.currentStep < FUNCTIONS.length) {
             const func = FUNCTIONS[this.currentStep];
 
@@ -139,9 +152,11 @@ export class DirectProcessHandler {
                 continue;
             }
 
+            // Not a skippable step, break out
             break;
         }
 
+        // After skipping, check if we reached the end
         if (this.currentStep >= FUNCTIONS.length) {
             this.showMessage('All steps completed!', 'success');
             this.isRunning = false;
@@ -156,15 +171,20 @@ export class DirectProcessHandler {
             return;
         }
 
+        // Now execute the current step
         const func = FUNCTIONS[this.currentStep];
         const depCheck = this.checkDependencies(func.name);
 
         if (!depCheck.valid) {
             this.showMessage(`Error: dependency required: ${depCheck.missing.join(', ')}`, 'error');
+            console.error(`[executeStep] Dependency check failed for ${func.name}:`, depCheck.missing);
             this.stop();
             return;
         }
 
+        console.log(`[executeStep] Executing: ${func.name}`);
+
+        // Apply actions
         const actions = FUNCTION_ACTIONS[func.name];
         if (actions) {
             if (actions.toggles) {
@@ -199,13 +219,13 @@ export class DirectProcessHandler {
     }
 
     private highlightFunction(functionName: string) {
-    document.querySelectorAll('.function-item').forEach(item => {
-        const element = item as HTMLElement;
-        if (element.dataset.function === functionName) {
-            element.classList.add('highlight');
-        }
-    });
-}
+        document.querySelectorAll('.function-item').forEach(item => {
+            const element = item as HTMLElement;
+            if (element.dataset.function === functionName) {
+                element.classList.add('highlight');
+            }
+        });
+    }
 
     private showMessage(text: string, type: 'error' | 'success' | 'process-info') {
         const messageDiv = document.getElementById('processMessage');

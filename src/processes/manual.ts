@@ -37,6 +37,10 @@ export class ManualProcessHandler {
                 if (!document.getElementById('toggleSalt')?.classList.contains('active')) {
                     missing.push('Salt toggle must be ON');
                 }
+            } else if (dep === 'kettleCups') {
+                // kettleCups is a counter - just check it exists (it's auto-initialized to 0)
+                // This dependency is actually just a marker, no real check needed
+                continue;
             } else if (!this.completedFunctions.includes(dep)) {
                 missing.push(`${dep} must be completed first`);
             }
@@ -146,13 +150,13 @@ export class ManualProcessHandler {
     }
 
     private highlightFunction(functionName: string) {
-    document.querySelectorAll('.function-item').forEach(item => {
-        const element = item as HTMLElement;
-        if (element.dataset.function === functionName) {
-            element.classList.add('highlight');
-        }
-    });
-}
+        document.querySelectorAll('.function-item').forEach(item => {
+            const element = item as HTMLElement;
+            if (element.dataset.function === functionName) {
+                element.classList.add('highlight');
+            }
+        });
+    }
 
     private showMessage(text: string, type: 'error' | 'success' | 'process-info') {
         const messageDiv = document.getElementById('processMessage');
