@@ -1,4 +1,4 @@
-# Deterministic Workflows with Temporal & LLM-Powered Agent Recovery
+# Deterministic Workflows with Temporal & Agent Recovery - Cuppa Tea Example
 
 A proof-of-concept demonstrating deterministic workflow execution with intelligent agent-based error/change recovery using Temporal, TypeScript, LangChain, and Ollama.
 
