@@ -1,8 +1,6 @@
 import { TeaState } from './agent_workflow.ts';
 import { AgentMemory } from './agent_memory.ts';
-import {
-    createRecoveryChain,
-} from './agent_config.ts';
+import { createRecoveryChain} from './agent_config.ts';
 
 export type AgentType = 'recovery';
 
@@ -22,11 +20,12 @@ export class RecoveryAgent {
         triggerDescription: string,
         currentState: TeaState
     ): Promise<AgentDecision> {
-        // TEMPORARY TEST MODE: Force agent to fail
+
+        // Test mode: Force agent to fail to test retry logic
         const FORCE_AGENT_FAILURE = false;
         if (FORCE_AGENT_FAILURE) {
-            console.log('\n[TEST MODE] Forcing agent failure to test retry logic...\n');
-            throw new Error('TEST MODE: Agent failure forced for testing purposes');
+            console.log('\nTest Mode: Forcing agent failure to test retry logic...\n');
+            throw new Error('Test Mode: Agent failure forced for testing purposes');
         }
 
         try {
@@ -76,4 +75,5 @@ export class AgentPool {
 
         throw new Error(`Unknown agent type: ${agentType}`);
     }
+
 }
