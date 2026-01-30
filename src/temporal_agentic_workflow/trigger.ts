@@ -23,7 +23,7 @@ export const triggers: TriggerConfig[] = [
       return activityName === 'kettleTurnOn' && state.kettleCups < 1;
     },
     agentType: 'recovery',
-    description: 'Kettle cannot turn on because kettleCups is less than 1. Agent must recover the water level.',
+    description: 'Kettle cannot turn on because kettleCups is less than 1.',
   },
 ];
 

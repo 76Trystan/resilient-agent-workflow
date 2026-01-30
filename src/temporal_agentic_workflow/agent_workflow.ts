@@ -164,7 +164,7 @@ export async function teaMakingWorkflow(input: WorkflowInput): Promise<WorkflowO
               if (decision.confidence > 0.3 && Object.keys(decision.newState).length > 0) {
                 Object.assign(state, decision.newState);
                 log.info(`Applied correction: ${decision.action}`);
-                await sleep(500);
+                //await sleep(500);
               } else if (decision.confidence <= 0.3) {
                 log.warn(`Agent confidence too low (${decision.confidence}), skipping correction`);
               }
@@ -177,7 +177,7 @@ export async function teaMakingWorkflow(input: WorkflowInput): Promise<WorkflowO
           }
           
           // Wait before retrying kettleTurnOn
-          await sleep(1000);
+          //await sleep(1000);
         }
       }
     }

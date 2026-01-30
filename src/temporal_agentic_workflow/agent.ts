@@ -45,7 +45,7 @@ export class RecoveryAgent {
                 analysis: parsed.analysis,
                 newState: parsed.corrections || {},
                 confidence: parsed.confidence || 0.5,
-                reasoning: `LLM Analysis: ${parsed.analysis}`,
+                reasoning: `${parsed.analysis}`,
             };
         } catch (error) {
             throw new Error(

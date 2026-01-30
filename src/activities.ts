@@ -7,6 +7,9 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 // Use process.cwd() to get project root
 const dataFilePath = path.join(process.cwd(), 'data.json');
 
+// Flag to track if workflow has started
+let workflowStarted = false;
+
 // Helper function to read current state
 async function readTeaState() {
   try {
@@ -37,8 +40,16 @@ async function writeTeaState(state: Record<string, any>) {
   }
 }
 
+
 export const activities = {
   async selfGetCup(): Promise<void> {
+    // 2-second delay at workflow start (only once)
+    if (!workflowStarted) {
+      workflowStarted = true;
+      console.log('Workflow starting... 2-second delay before beginning activities');
+      await sleep(5000);
+    }
+
     await sleep(1000);
     console.log('selfGetCup');
     const state = await readTeaState();
