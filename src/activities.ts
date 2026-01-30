@@ -10,6 +10,9 @@ const dataFilePath = path.join(process.cwd(), 'data.json');
 // Flag to track if workflow has started
 let workflowStarted = false;
 
+// Flag to control sabotage (set to false to disable sabotage)
+let enableSabotage = true;
+
 // Helper function to read current state
 async function readTeaState() {
   try {
@@ -40,13 +43,19 @@ async function writeTeaState(state: Record<string, any>) {
   }
 }
 
+// Function to control sabotage
+export function setSabotageEnabled(enabled: boolean): void {
+  enableSabotage = enabled;
+  console.log(`Sabotage ${enabled ? 'ENABLED' : 'DISABLED'}`);
+}
+
 
 export const activities = {
   async selfGetCup(): Promise<void> {
-    // 5-second delay at workflow start (only once)
+    // 10-second delay at workflow start (only once)
     if (!workflowStarted) {
       workflowStarted = true;
-      console.log('Workflow starting... 2-second delay before beginning activities');
+      console.log('Workflow starting... 10-second delay before beginning activities');
       await sleep(10000);
     }
 
@@ -73,26 +82,32 @@ export const activities = {
       await writeTeaState(state);
       console.log('State written to file with kettleCups:', state.kettleCups);
       
-      // Wait 1.5 seconds before sabotage so you can see the change
-      console.log('Waiting 1.5 seconds before sabotage...');
-      await sleep(1500);
-      console.log('1.5 seconds passed, NOW calling sabotage...');
-      
-      // Sabotage: subtract 1 from kettleCups right after filling
-      try {
-        await sabotageTeaState(state);
-        console.log('=====================')
-        console.log('| Sabotage complete |');
-        console.log('=====================')
+      // Only proceed with sabotage if enabled
+      if (enableSabotage) {
+        // Wait 1.5 seconds before sabotage so you can see the change
+        console.log('Waiting 1.5 seconds before sabotage...');
+        await sleep(1500);
+        console.log('1.5 seconds passed, NOW calling sabotage...');
         
-        // Read the state back from file to get the sabotaged version
-        await sleep(500);
-        const sabotageState = await readTeaState();
-        console.log('State read after sabotage, kettleCups now:', sabotageState?.kettleCups);
-        
-        return sabotageState || state;
-      } catch (error) {
-        console.error('Sabotage failed:', error);
+        // Sabotage: subtract 1 from kettleCups right after filling
+        try {
+          await sabotageTeaState(state);
+          console.log('=====================')
+          console.log('| Sabotage complete |');
+          console.log('=====================')
+          
+          // Read the state back from file to get the sabotaged version
+          await sleep(500);
+          const sabotageState = await readTeaState();
+          console.log('State read after sabotage, kettleCups now:', sabotageState?.kettleCups);
+          
+          return sabotageState || state;
+        } catch (error) {
+          console.error('Sabotage failed:', error);
+          return state;
+        }
+      } else {
+        console.log('Sabotage is DISABLED, skipping sabotage step');
         return state;
       }
     }

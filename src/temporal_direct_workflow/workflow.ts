@@ -62,7 +62,7 @@ export async function teaMakingWorkflow(input: WorkflowInput): Promise<WorkflowO
   const state = { ...input.teaState };
   let isPaused = false;
   let shouldStop = false;
-  const enableSelfCorrect = true; // true: self correct is active
+  const enableSelfCorrect = false; // true: self correct is active
 
   setHandler(pauseSignal, () => {
     isPaused = true;
