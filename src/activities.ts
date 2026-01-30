@@ -43,11 +43,11 @@ async function writeTeaState(state: Record<string, any>) {
 
 export const activities = {
   async selfGetCup(): Promise<void> {
-    // 2-second delay at workflow start (only once)
+    // 5-second delay at workflow start (only once)
     if (!workflowStarted) {
       workflowStarted = true;
       console.log('Workflow starting... 2-second delay before beginning activities');
-      await sleep(5000);
+      await sleep(10000);
     }
 
     await sleep(1000);
