@@ -44,6 +44,7 @@ export interface TeaState {
 
 export interface WorkflowInput {
   teaState: TeaState;
+  enableSelfCorrect?: boolean; // Default: true if not specified
 }
 
 export interface WorkflowOutput {
@@ -61,6 +62,7 @@ export async function teaMakingWorkflow(input: WorkflowInput): Promise<WorkflowO
   const state = { ...input.teaState };
   let isPaused = false;
   let shouldStop = false;
+  const enableSelfCorrect = true; // true: self correct is active
 
   setHandler(pauseSignal, () => {
     isPaused = true;
@@ -92,8 +94,8 @@ export async function teaMakingWorkflow(input: WorkflowInput): Promise<WorkflowO
     const result = await activityFn();
     await stateUpdate(result);
     
-    // Only do self-correct check for kettleFill
-    if (stepName === 'kettleFill') {
+    // Only do self-correct check for kettleFill if enabled
+    if (enableSelfCorrect && stepName === 'kettleFill') {
       // Wait 1.5 seconds after activity completes (for sabotage to take effect)
       await sleep(1500);
       
