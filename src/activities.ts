@@ -56,7 +56,7 @@ export const activities = {
     if (!workflowStarted) {
       workflowStarted = true;
       console.log('Workflow starting... 10-second delay before beginning activities');
-      await sleep(10000);
+      await sleep(1000);
     }
 
     await sleep(1000);

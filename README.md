@@ -159,6 +159,10 @@ Failed activities can be retried:
 - State persists across retry attempts
 - Workflow can recover and continue
 
+### Example Workflow (Temporal UI)
+
+![HappyPath](/Users/trystan/Documents/GitHub/deterministic-workflow-temporal/images/HappyPath.png)
+
 ---
 
 ## Tech Stack
