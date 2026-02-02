@@ -284,9 +284,9 @@ try {
 
 --- 
 
-## Setup
+## Setup & Installation
 
-### 1. Installation
+### 1. NPM Installation
 
 ```
 npm install
