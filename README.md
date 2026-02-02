@@ -293,12 +293,17 @@ npm install
 ```
 
 ### 2. Start Backend
+```
+<from project directory> touch data.json
+```
+
+### 3. Start Backend
    
 ```
 npm run start:all
 ```
 
-### 3. Start Frontend
+### 4. Start Frontend
 
 ```
 npm run dev
