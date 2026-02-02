@@ -72,6 +72,24 @@ Check for State Corruption (Triggers, Errors or State Checks)
 Complete Workflow
 ```
 
+## Process & Workflows
+
+This project consists of the following 4 workflows and processes:
+
+### 1. Manual Process
+   This Demonstrates steps to make a cup of tea as a manual process, in Cuppa-Tea UI, maunal process involves manually clicking through each step of the procedure.
+
+### 2. Direct Process
+   Like Manual process, however a script is executed to complete all manual steps automatically.
+
+### 3. Direct Workflow
+    Direct Workflow is a carbon copy of direct process, only difference here is it is defined as a workflow using the Temporal Framework for durable execution.
+
+### 4. Agentic Workflow
+    The Agentic workflow is like direct workflow, a workflow run by the Temporal Framework, however when errors/triggeres are encountered during the workflow, an agent is invoked mid-workflow to fix any issues or changes, ultimately putting the workflow back on a happy path.
+
+---
+
 ### Components
 
 - Temporal Server: Orchestrates durable workflow execution, manages history, ensures determinism
@@ -159,7 +177,9 @@ Failed activities can be retried:
 - State persists across retry attempts
 - Workflow can recover and continue
 
-### Example Workflow (Temporal UI)
+---
+
+## Example Workflow (Temporal UI)
 
 A Typical Happy path within the Temporal UI would look like the following:
 
