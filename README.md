@@ -161,7 +161,31 @@ Failed activities can be retried:
 
 ### Example Workflow (Temporal UI)
 
-![HappyPath](/Users/trystan/Documents/GitHub/deterministic-workflow-temporal/images/HappyPath.png)
+A Typical Happy path within the Temporal UI would look like the following:
+
+<img width="1380" height="560" alt="HappyPath" src="https://github.com/user-attachments/assets/4cd0a0d6-72b3-49cb-b197-5f7f6e7f623e" />
+
+However, when something changes or an error occurs that could potentially stop or paused the workflow, it will look like this:
+
+<img width="1381" height="318" alt="UnhappyPath" src="https://github.com/user-attachments/assets/0766381a-6471-4fef-a04d-7bb50371ac5b" />
+
+With the addition of the recovery agent, we can see how an unhappy path can be fixed by the agent:
+
+<img width="1388" height="625" alt="AgentPath" src="https://github.com/user-attachments/assets/a58df373-5a53-4fff-891b-aa6623953253" />
+
+Behind the scenes in this example we can see the quantiy of water (kettleCups) is removed right before kettleTurnOn is executed, this causes an error. We can see here exactly what the agent is detecting and acting upon when an error/trigger arises.
+
+This here is the error prompted to the agent, as well as its immediate response:
+
+<img width="484" height="249" alt="input" src="https://github.com/user-attachments/assets/115cc09e-0bb6-4093-8cf8-cecf5478a88e" />
+
+After the agent acts upon the problem, this is the result:
+
+<img width="663" height="267" alt="result" src="https://github.com/user-attachments/assets/dd02178f-1dc5-4462-8300-935618e02a98" />
+
+This demonstrates the agent’s intelligent analysis and decision-making in response to encountered errors. In this example, a mock error "kettleTurnOn_no_water" is triggered, prompting the agent to investigate and respond. Due to constraints such as using a very small language model, extensive system prompting is required to ensure the agent reacts appropriately to the error. In a larger-scale environment, a more powerful language model could interpret arbitrary error codes and take appropriate action without such heavy prompting.
+
+
 
 ---
 
