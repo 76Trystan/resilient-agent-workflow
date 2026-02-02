@@ -1,10 +1,17 @@
 # Resilient Workflows with Temporal & Agent Recovery - Cuppa Tea Example
 
-A proof-of-concept demonstrating deterministic & resilient workflow execution with intelligent agent-based error/change recovery using Temporal, TypeScript, LangChain, and Ollama.
+A proof-of-concept demonstrating **Temporal-based deterministic workflow execution** with 
+**optional agent-assisted error recovery** using TypeScript, LangChain, and Ollama.
 
 ## Overview
 
-This project showcases how these workflows can handle both happy and unhappy paths through intelligent agent intervention. It serves as a reference implementation for building resilient, self-healing workflows that can automatically detect and recover from state corruption or change without manual intervention.
+This project showcases four different approaches to workflow orchestration, from manual UI-driven 
+steps to fully automated deterministic workflows with LLM-powered recovery.
+
+**Important:** This is a simplified demo using a toy tea-making domain. The agent recovery system 
+has significant limitations (see Known Limitations below).
+
+---
 
 ## The Problem Space
 
@@ -33,15 +40,14 @@ Input State → Activity 1 → Activity 2 → ... → Activity N → Final State
 Given the same input state, the workflow will always execute the same sequence of activities and produce the same output.
 
 ### Happy Path vs Unhappy Path
-Happy Path: Workflow executes successfully without errors
 
+**Happy Path:** Workflow executes successfully without errors
 - All activities succeed
 - State remains consistent
 - No agent intervention needed
 - Workflow completes normally
 
-### Unhappy Path: Workflow encounters errors or corrupted state
-
+**Unhappy Path (Agentic Only):** Workflow encounters errors or corrupted state
 - Activities fail or produce invalid state
 - Triggers detect anomalies
 - Agents invoke to diagnose and fix issues
@@ -53,23 +59,19 @@ Happy Path: Workflow executes successfully without errors
 ## Architecture
 
 ```
-Start Workflow
+kettleFill Activity
     ↓
-Execute Activity
+Sabotage (demo only, controlled by enableSabotage flag)
     ↓
-Check for State Corruption (Triggers, Errors or State Checks)
-    ├─ Happy Path: Continue to next activity
-    └─ Unhappy Path: Invoke Agent
-            ↓
-        LLM Analysis (via Ollama)
-            ↓
-        Decide Recovery Action
-            ↓
-        Persist Correction
-            ↓
-        Retry Activity
+kettleTurnOn Activity
     ↓
-Complete Workflow
+Activity Fails? (if kettleCups < 1)
+    ├─ NO → Continue to next activity
+    └─ YES → Check Triggers & Invoke Agent (up to 3 retries)
+        ↓
+    LLM Analysis & Correction
+        ↓
+    Retry kettleTurnOn
 ```
 
 ## Process & Workflows
@@ -79,11 +81,15 @@ This project consists of the following 4 workflows and processes:
 ### 1. Manual Process
    This Demonstrates steps to make a cup of tea as a manual process, in Cuppa-Tea UI, maunal process involves manually clicking through each step of the procedure.
 
-### 2. Direct Process
-   Like Manual process, however a script is executed to complete all manual steps automatically.
+### 2. Direct Process (Client-Side Automation)
+Like the manual process but automatically executes steps client-side every 1 second.
+Uses UI state updates, NOT Temporal. Not suitable for long-running or distributed scenarios.
 
 ### 3. Direct Workflow
     Direct Workflow is a carbon copy of direct process, only difference here is it is defined as a workflow using the Temporal Framework for durable execution.
+
+**Note:** Self-correction logic exists but is currently disabled (`enableSelfCorrect = false`). 
+When enabled, it provides basic checks only for kettleFill activity.
 
 ### 4. Agentic Workflow
     The Agentic workflow is like direct workflow, a workflow run by the Temporal Framework, however when errors/triggeres are encountered during the workflow, an agent is invoked mid-workflow to fix any issues or changes, ultimately putting the workflow back on a happy path.
@@ -122,7 +128,7 @@ Characteristics: No agent invocation, No error handling needed, Direct path to c
 ```
 kettleFill: kettleCups = 0 → 1
     ↓
-SABOTAGE: kettleCups = 1 → 0 (state corruption)
+SABOTAGE (Demo): kettleCups = 1 → 0 (state corruption)
     ↓
 Trigger Check: kettleCups >= 1? NO → TRIGGER FIRES
     ↓
@@ -152,13 +158,11 @@ Every workflow execution is deterministic:
 - History is preserved and auditable
 - State transitions are explicit and traceable
 
-### Trigger-Based Agent Invocation
-Agents only activate when needed:
-
-- Continuous state validation
-- Automatic anomaly detection
-- Recovery without manual intervention
-- Audit trail of all corrections
+### Trigger-Based Agent Invocation (Currently Limited)
+Agents activate for specific failure scenarios:
+- Currently supports kettleCups corruption detection (2 triggers defined)
+- Triggers only evaluate on kettleTurnOn activity
+- Not generalized for arbitrary state anomalies
 
 ### LLM-Powered Recovery
 Recovery decisions are intelligent:
@@ -304,6 +308,26 @@ try {
 
 --- 
 
+## Prerequisites & Notes
+
+- **Temporal Server**: Running on `localhost:7233`
+- **Ollama**: Running on `localhost:11434` with `llama3.1:8b` model
+```bash
+  ollama pull llama3.1:8b
+  ollama serve
+```
+- **Node.js**: 18+ with npm
+
+### Architecture Notes
+
+Two separate Express servers:
+- **Port 3000**: Direct temporal workflow server (`src/temporal_direct_workflow/server.ts`)
+- **Port 3001**: Agentic temporal workflow server (`src/temporal_agentic_workflow/agent_server.ts`)
+
+Both share the same Temporal backend but use different workers and task queues.
+
+--- 
+
 ## Setup & Installation
 
 ### 1. NPM Installation
@@ -328,6 +352,41 @@ npm run start:all
 ```
 npm run dev
 ```
+---
+
+## Known Limitations & Future Improvements
+
+### Agent Recovery
+- Agent only invokes for `kettleTurnOn` activity failures
+- Only 2 triggers defined (`kettleCups_corrupted`, `kettleTurnOn_no_water`)
+- Small LLM model (llama3.1:8b) may produce invalid JSON or hallucinated field names
+- No validation of LLM output before applying corrections
+- Confidence scoring is advisory; corrections apply if confidence > 0.3 regardless of actual validity
+
+### State Management
+- Single file-based state (data.json) - not suitable for concurrent workflows
+- No transaction semantics - state can be inconsistent between activities
+- Sabotage is hardcoded into kettleFill activity, not truly random/external
+
+### Workflow Constraints
+- Manual process is UI-heavy and not scalable
+- Direct process doesn't use Temporal semantics, just polling
+- Only 15 sequential activities - complex workflows need better modeling
+
+### Critical Issues
+1. **Agent Robustness**: No fallback when LLM returns invalid JSON
+2. **Trigger Coverage**: Only 2 scenarios; most errors unhandled
+3. **Concurrent Workflows**: File-based state breaks with >1 workflow
+4. **State Validation**: Invalid corrections silently ignored
+
+### Recommended Fixes
+- Replace file-based state with database (PostgreSQL, etc.)
+- Add JSON schema validation for LLM output
+- Implement comprehensive error trigger patterns
+- Use larger, more capable LLM (gpt-4, etc.)
+- Add transaction-like semantics for multi-activity operations
+- Queue-based state updates instead of direct file writes
+
 ---
 
 ## MIT License
