@@ -1,10 +1,10 @@
-# Deterministic Workflows with Temporal & Agent Recovery - Cuppa Tea Example
+# Resilient Workflows with Temporal & Agent Recovery - Cuppa Tea Example
 
-A proof-of-concept demonstrating deterministic workflow execution with intelligent agent-based error/change recovery using Temporal, TypeScript, LangChain, and Ollama.
+A proof-of-concept demonstrating deterministic & resilient workflow execution with intelligent agent-based error/change recovery using Temporal, TypeScript, LangChain, and Ollama.
 
 ## Overview
 
-This project showcases how deterministic workflows can handle both happy and unhappy paths through intelligent agent intervention. It serves as a reference implementation for building resilient, self-healing workflows that can automatically detect and recover from state corruption without manual intervention.
+This project showcases how these workflows can handle both happy and unhappy paths through intelligent agent intervention. It serves as a reference implementation for building resilient, self-healing workflows that can automatically detect and recover from state corruption or change without manual intervention.
 
 ## The Problem Space
 
