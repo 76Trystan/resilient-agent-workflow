@@ -13,14 +13,6 @@ has significant limitations (see Known Limitations below).
 
 ---
 
-## The Problem Space
-
-In distributed workflow systems, transient failures, data corruption, and state anomalies can occur unpredictably during long running processes. Traditional approaches rely on either manual intervention or rigid, hardcoded recovery logic that doesn't scale, each new failure pattern requires code changes. This creates a bottleneck in resilience.
-
-A potential solution to this space is a Tomporal workflow that uses an Agent within the workflow to detect changes, correct back to a happy path, and deciding what changed states within the workflow reqired the workflow to even restart fully.
-
----
-
 ## Core Concepts
 
 ### Deterministic Workflows
@@ -53,6 +45,8 @@ Given the same input state, the workflow will always execute the same sequence o
 - Agents invoke to diagnose and fix issues
 - Workflow retries with corrected state
 - Can still reach completion successfully
+
+
 
 ---
 
