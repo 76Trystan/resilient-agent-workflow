@@ -79,15 +79,14 @@ This project consists of the following 4 workflows and processes:
 Like the manual process but automatically executes steps client-side every 1 second.
 Uses UI state updates, NOT Temporal. Not suitable for long-running or distributed scenarios.
 
-### 3. Direct Workflow
-    Direct Workflow is a carbon copy of direct process, only difference here is it is defined as a workflow using the Temporal Framework for durable execution.
+### 3. Direct Workflow 
+Direct Workflow is a carbon copy of direct process, only difference here is it is defined as a workflow using the Temporal Framework for durable execution.
 
 **Note:** Self-correction logic exists but is currently disabled (`enableSelfCorrect = false`). 
 When enabled, it provides basic checks only for kettleFill activity.
 
 ### 4. Agentic Workflow
-    The Agentic workflow is like direct workflow, a workflow run by the Temporal Framework, however when errors/triggeres are encountered during the workflow, an agent is invoked mid-workflow to fix any issues or changes, ultimately putting the workflow back on a happy path.
-
+The Agentic workflow is like direct workflow, a workflow run by the Temporal Framework, however when errors/triggeres are encountered during the workflow, an agent is invoked mid-workflow to fix any issues or changes, ultimately putting the workflow back on a happy path.
 ---
 
 ### Components
