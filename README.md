@@ -87,6 +87,7 @@ When enabled, it provides basic checks only for kettleFill activity.
 
 ### 4. Agentic Workflow
 The Agentic workflow is like direct workflow, a workflow run by the Temporal Framework, however when errors/triggeres are encountered during the workflow, an agent is invoked mid-workflow to fix any issues or changes, ultimately putting the workflow back on a happy path.
+
 ---
 
 ### Components
