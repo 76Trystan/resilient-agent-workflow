@@ -357,28 +357,17 @@ npm run dev
 - No validation of LLM output before applying corrections
 - Confidence scoring is advisory; corrections apply if confidence > 0.3 regardless of actual validity
 
-### State Management
-- Single file-based state (data.json) - not suitable for concurrent workflows
-- No transaction semantics - state can be inconsistent between activities
-- Sabotage is hardcoded into kettleFill activity, not truly random/external
-
-### Workflow Constraints
-- Manual process is UI-heavy and not scalable
-- Direct process doesn't use Temporal semantics, just polling
-- Only 15 sequential activities - complex workflows need better modeling
-
 ### Critical Issues
 1. **Agent Robustness**: No fallback when LLM returns invalid JSON
 2. **Trigger Coverage**: Only 2 scenarios; most errors unhandled
 3. **Concurrent Workflows**: File-based state breaks with >1 workflow
 4. **State Validation**: Invalid corrections silently ignored
 
-### Recommended Fixes
-- Replace file-based state with database (PostgreSQL, etc.)
-- Add JSON schema validation for LLM output
+### Future Fixes, Additions & Discoveries
 - Implement comprehensive error trigger patterns
 - Use larger, more capable LLM (gpt-4, etc.)
-- Add transaction-like semantics for multi-activity operations
-- Queue-based state updates instead of direct file writes
+- **Add Agent Retry Decision Making**: If an error occurs in a previous Activity and the agent detects this change, it should have the ability to fix the change that has occured or retry at that certain Activity if the compound error (due to the change) is  too great to just "Fix" like shown in the 'kettleNoWater' demo.
+- **Add Human in the loop implementations**: Allow human intervention to the workflow without agent being triggered or conflicting with human decision.
+- **Real World Use cases**: Apply this proof of concept to real world use cases and test its capabilities at a larger scale.  
 
 ---
