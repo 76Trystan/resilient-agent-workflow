@@ -348,7 +348,7 @@ npm run dev
 ```
 ---
 
-## Known Limitations & Future Improvements
+## Known Limitations
 
 ### Agent Recovery
 - Agent only invokes for `kettleTurnOn` activity failures
@@ -363,11 +363,15 @@ npm run dev
 3. **Concurrent Workflows**: File-based state breaks with >1 workflow
 4. **State Validation**: Invalid corrections silently ignored
 
-### Future Fixes, Additions & Discoveries
-- Implement comprehensive error trigger patterns
-- Use larger, more capable LLM (gpt-4, etc.)
-- **Add Agent Retry Decision Making**: If an error occurs in a previous Activity and the agent detects this change, it should have the ability to fix the change that has occured or retry at that certain Activity if the compound error (due to the change) is  too great to just "Fix" like shown in the 'kettleNoWater' demo.
-- **Add Human in the loop implementations**: Allow human intervention to the workflow without agent being triggered or conflicting with human decision.
-- **Real World Use cases**: Apply this proof of concept to real world use cases and test its capabilities at a larger scale.  
+## Future Fixes, Additions & Discoveries
+
+### Add Agent Retry Decision Making 
+If an error occurs in a previous Activity and the agent detects this change, it should have the ability to fix the change that has occured or retry at that certain Activity if the compound error (due to the change) is  too great to just "Fix" like shown in the 'kettleNoWater' demo.
+
+### Add Human in the loop implementations 
+Allow human intervention to the workflow without agent being triggered or conflicting with human decision.
+
+### Real World Use cases 
+Apply this proof of concept to real world use cases and test its capabilities at a larger scale.  
 
 ---
