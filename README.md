@@ -1,6 +1,6 @@
 # Resilient Workflows with Temporal & Agent Recovery - Cuppa Tea Example
 
-A proof-of-concept demonstrating **Temporal-based deterministic workflow execution** with 
+A proof-of-concept demonstrating **Temporal-based resilient workflow execution** with 
 **optional agent-assisted error recovery** using TypeScript, LangChain, and Ollama.
 
 ## Overview
