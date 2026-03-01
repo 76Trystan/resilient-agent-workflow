@@ -8,7 +8,7 @@ A proof-of-concept demonstrating **Temporal-based resilient workflow execution**
 This project showcases four different approaches to workflow orchestration, from manual UI-driven 
 steps to fully automated deterministic workflows with LLM-powered recovery.
 
-**Important:** This is a simplified demo using a toy tea-making domain. The agent recovery system 
+**Important:** This is a simplified demo using a tea-making domain. The agent recovery system 
 has significant limitations (see Known Limitations below).
 
 ---
