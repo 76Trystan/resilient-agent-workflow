@@ -367,7 +367,7 @@ npm run dev
 
 ### Add Agent Retry Decision Making 
 If an error occurs in a previous Activity and the agent detects this change, it should have the ability to fix the change that has occured or retry at that certain Activity if the compound error (due to the change) is  too great to just "Fix" like shown in the 'kettleNoWater' demo.
-EDIT: I Have now created a separate repo demostrating the retry logic that will later be added to this project here [Workflow Resets]([https://docs.github.com](https://github.com/76Trystan/workflow-resets))
+EDIT: I Have now created a separate repo demostrating the retry logic that will later be added to this project here: [Workflow Resets](https://github.com/76Trystan/workflow-resets)
 
 ### Add Human in the loop implementations 
 Allow human intervention to the workflow without agent being triggered or conflicting with human decision.
