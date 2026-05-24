@@ -1,378 +1,341 @@
 # Resilient Workflows with Temporal & Agent Recovery - Cuppa Tea Example
 
-A proof-of-concept demonstrating **Temporal-based resilient workflow execution** with 
-**optional agent-assisted error recovery** using TypeScript, LangChain, and Ollama.
+A proof-of-concept using Temporal for durable workflow execution, with an optional LLM-powered recovery agent that can fix broken state mid-workflow and get things back on track. Built with TypeScript, LangChain, and Ollama.
 
-## Overview
-
-This project showcases four different approaches to workflow orchestration, from manual UI-driven 
-steps to fully automated deterministic workflows with LLM-powered recovery.
-
-**Important:** This is a simplified demo using a tea-making domain. The agent recovery system 
-has significant limitations (see Known Limitations below).
+The domain is deliberately simple (making a cup of tea) so the focus stays on the orchestration and recovery patterns rather than the business logic.
 
 ---
 
-## Core Concepts
+## What's in here
 
-### Deterministic Workflows
+Four progressively more capable versions of the same tea-making process:
 
-A deterministic workflow is a workflow that:
+1. **Manual Process** - click through each step in the UI yourself
+2. **Direct Process** - same as manual but auto-executes client-side every second, no Temporal involved
+3. **Direct Workflow** - runs inside Temporal for durable execution, but no recovery logic (a self-correction stub exists but is disabled)
+4. **Agentic Workflow** - runs in Temporal and when something breaks, invokes a recovery agent backed by a local LLM to diagnose and fix the state before retrying
 
-- Produces identical results given the same inputs and execution history
-- Is reproducible across failures and restarts
-- Has explicit control flow - no external randomness or non-deterministic calls
-- Can replay history - Temporal stores all decisions and can rebuild state from history
+---
 
-This implementation demonstrates these principles:
+## How the agentic workflow works
+
+### Normal run (happy path)
+
+Temporal executes the 15 activities in sequence. Each one reads and writes `data.json` as its persistent state. Everything succeeds and the workflow completes.
 
 ```
 Input State → Activity 1 → Activity 2 → ... → Activity N → Final State
 ```
-Given the same input state, the workflow will always execute the same sequence of activities and produce the same output.
 
-### Happy Path vs Unhappy Path
+Given the same input, the workflow always takes the same path. Temporal stores the full history so it can replay from any point after a failure.
 
-**Happy Path:** Workflow executes successfully without errors
-- All activities succeed
-- State remains consistent
-- No agent intervention needed
-- Workflow completes normally
+### When something goes wrong
 
-**Unhappy Path (Agentic Only):** Workflow encounters errors or corrupted state
-- Activities fail or produce invalid state
-- Triggers detect anomalies
-- Agents invoke to diagnose and fix issues
-- Workflow retries with corrected state
-- Can still reach completion successfully
+For the demo, sabotage is injected after `kettleFill` - it sets `kettleCups` back to 0 right after the fill, so `kettleTurnOn` fails because there's no water.
 
+When that happens, instead of the workflow just failing, it checks if any triggers match the current state. If one does, it calls the recovery agent, which asks the LLM what went wrong and what to fix. If the LLM comes back with a correction at confidence > 0.3, the state is patched and `kettleTurnOn` is retried. Up to 3 attempts total.
 
+```
+kettleFill sets kettleCups = 1
+  → sabotage sets it back to 0
+  → kettleTurnOn fails
+  → trigger fires: "kettleTurnOn_no_water"
+  → agent asks LLM: what's wrong, what should change?
+  → LLM returns: restore kettleCups to 1
+  → state fixed, kettleTurnOn retried and succeeds
+  → workflow continues normally
+```
+
+Two triggers are currently defined:
+
+| Trigger | Condition | Activity |
+|---|---|---|
+| `kettleCups_corrupted` | `kettleCups < 1` after fill | `kettleFill` |
+| `kettleTurnOn_no_water` | `kettleCups < 1` at turn-on | `kettleTurnOn` |
 
 ---
 
 ## Architecture
 
+```mermaid
+graph TB
+    subgraph Frontend["Frontend - Port 5173"]
+        UI["Cuppa Tea UI<br/>(Vite + TypeScript)"]
+    end
+
+    subgraph Backend["Backend Servers"]
+        DS["Direct Workflow Server<br/>Port 3000"]
+        AS["Agentic Workflow Server<br/>Port 3001"]
+    end
+
+    subgraph Temporal["Temporal Runtime"]
+        TS["Temporal Server<br/>:7233"]
+        DW["Direct Workflow Worker"]
+        AW["Agentic Workflow Worker"]
+    end
+
+    subgraph AgentLayer["Agent Layer"]
+        TR["Trigger Evaluator"]
+        AP["AgentPool"]
+        RA["RecoveryAgent"]
+        LC["LangChain Chain"]
+    end
+
+    subgraph LLM["Local LLM"]
+        OL["Ollama<br/>:11434<br/>llama3.1:8b"]
+    end
+
+    STATE[("data.json<br/>Persistent State")]
+
+    UI -->|HTTP| DS
+    UI -->|HTTP| AS
+    DS -->|start workflow| TS
+    AS -->|start workflow| TS
+    TS <-->|task queue| DW
+    TS <-->|task queue| AW
+    DW -->|read / write| STATE
+    AW -->|read / write| STATE
+    AW -->|on failure| TR
+    TR -->|trigger fired| AP
+    AP --> RA
+    RA --> LC
+    LC <-->|HTTP| OL
+    RA -->|state correction| AW
 ```
-kettleFill Activity
-    ↓
-Sabotage (demo only, controlled by enableSabotage flag)
-    ↓
-kettleTurnOn Activity
-    ↓
-Activity Fails? (if kettleCups < 1)
-    ├─ NO → Continue to next activity
-    └─ YES → Check Triggers & Invoke Agent (up to 3 retries)
-        ↓
-    LLM Analysis & Correction
-        ↓
-    Retry kettleTurnOn
-```
 
-## Process & Workflows
-
-This project consists of the following 4 workflows and processes:
-
-### 1. Manual Process
-   This Demonstrates steps to make a cup of tea as a manual process, in Cuppa-Tea UI, maunal process involves manually clicking through each step of the procedure.
-
-### 2. Direct Process (Client-Side Automation)
-Like the manual process but automatically executes steps client-side every 1 second.
-Uses UI state updates, NOT Temporal. Not suitable for long-running or distributed scenarios.
-
-### 3. Direct Workflow 
-Direct Workflow is a carbon copy of direct process, only difference here is it is defined as a workflow using the Temporal Framework for durable execution.
-
-**Note:** Self-correction logic exists but is currently disabled (`enableSelfCorrect = false`). 
-When enabled, it provides basic checks only for kettleFill activity.
-
-### 4. Agentic Workflow
-The Agentic workflow is like direct workflow, a workflow run by the Temporal Framework, however when errors/triggeres are encountered during the workflow, an agent is invoked mid-workflow to fix any issues or changes, ultimately putting the workflow back on a happy path.
+Two Express servers run alongside the Temporal workers. Port 3000 handles the direct workflow, port 3001 handles the agentic one. They share the same Temporal backend but use separate workers and task queues.
 
 ---
 
-### Components
+## Full activity sequence
 
-- Temporal Server: Orchestrates durable workflow execution, manages history, ensures determinism
-- Workflow: Orchestration logic, defines the sequence of activities and decision points
-- Activities: Individual work units that modify state and persist changes to disk
-- Triggers: A mix of detection functions and mock errors that trigger invokeAgent.
-- Recovery Agent: Uses LLM to analyze corrupted state and decide on recovery actions
-- LLM (Ollama): Provides intelligent analysis and decision-making for recovery
-- Persistent State (data.json): Single source of truth for workflow state
+```mermaid
+flowchart TD
+    START([Start]) --> A1[selfGetCup]
+    A1 --> A2[kettleFill]
+    A2 --> SAB{{"Sabotage?\n(demo only)"}}
+    SAB -->|enableSabotage = true| CORRUPT["State corrupted:\nkettleCups → 0"]
+    SAB -->|enableSabotage = false| A3
+    CORRUPT --> A3
+
+    A3[kettleTurnOn] --> FAIL{kettleCups ≥ 1?}
+    FAIL -->|YES| A4[kettleWaitWhistle]
+    FAIL -->|NO, up to 3 attempts| TRIG[Evaluate Triggers]
+    TRIG --> AGENT["Invoke Recovery Agent\n(LLM via Ollama)"]
+    AGENT --> FIX["Apply state correction\n(kettleCups restored)"]
+    FIX --> A3
+
+    A4 --> A5[cupAddTeabag]
+    A4 --> A6[cupAddWater]
+    A5 --> A7[cupMashTea]
+    A6 --> A7
+    A7 --> A8[cupRemoveTeabag]
+    A8 --> OPT1{toggleMilk?}
+    OPT1 -->|YES| A9[cupAddMilk]
+    OPT1 -->|NO| OPT2
+    A9 --> OPT2{toggleSugar?}
+    OPT2 -->|YES| A10[cupAddSugar]
+    OPT2 -->|NO| OPT3
+    A10 --> OPT3{toggleSalt?}
+    OPT3 -->|YES| A11[cupAddSalt]
+    OPT3 -->|NO| A12
+    A11 --> A12[cupStir]
+    A12 --> A13[selfDrinkCup]
+    A13 --> A14[selfEmptyCup]
+    A14 --> A15[selfTidyUp]
+    A15 --> END([Complete])
+```
 
 ---
 
-### Happy Path Example
+## Recovery agent sequence
 
-```
-kettleFill: kettleCups = 0 → 1
-    ↓
-Trigger Check: kettleCups >= 1? YES
-    ↓
-kettleTurnOn: Succeeds (water available)
-    ↓
-Workflow continues normally
-    ↓
-Final State: Valid, Workflow Completes Successfully
-```
-Characteristics: No agent invocation, No error handling needed, Direct path to completion & Minimal latency.
+```mermaid
+sequenceDiagram
+    participant W  as Workflow
+    participant TR as Trigger Evaluator
+    participant AP as AgentPool
+    participant RA as RecoveryAgent
+    participant OL as Ollama (LLM)
+    participant ST as data.json
 
-### Unhappy Path Example
+    W->>W: kettleTurnOn fails (kettleCups < 1)
+    W->>TR: evaluateTriggers(state, "kettleTurnOn")
+    TR-->>W: TriggerConfig: "kettleTurnOn_no_water"
+    W->>AP: invokeAgent("recovery", trigger, state)
+    AP->>RA: analyze(triggerName, description, state)
+    RA->>OL: LangChain chain invoke (state JSON + trigger)
+    OL-->>RA: JSON { action, analysis, corrections, confidence }
+    RA-->>AP: AgentDecision
+    AP-->>W: AgentDecision
 
+    alt confidence > 0.3 AND corrections not empty
+        W->>ST: Apply state corrections (kettleCups = 1)
+        W->>W: Retry kettleTurnOn
+    else confidence too low
+        W->>W: Log warning, skip correction
+        W->>W: Retry without fix (may exhaust attempts)
+    end
 ```
-kettleFill: kettleCups = 0 → 1
-    ↓
-SABOTAGE (Demo): kettleCups = 1 → 0 (state corruption)
-    ↓
-Trigger Check: kettleCups >= 1? NO → TRIGGER FIRES
-    ↓
-Agent Invoked: Analyzes state corruption
-    ↓
-LLM Decision: "kettleCups was corrupted, restore to 1"
-    ↓
-State Persisted: kettleCups = 1
-    ↓
-kettleTurnOn: Retry succeeds (water now available)
-    ↓
-Workflow continues from recovery point
-    ↓
-Final State: Valid, Workflow Completes Successfully
-```
-Characteristics: Intelligent recovery/adaption, State is corrected mid-workflow, Workflow recovers and completes, Demonstrates resilience
 
 ---
 
-## Key Features
+## Temporal UI examples
 
-### Deterministic Execution
-Every workflow execution is deterministic:
-
-- Same inputs → Same execution path
-- Failures can be replayed
-- History is preserved and auditable
-- State transitions are explicit and traceable
-
-### Trigger-Based Agent Invocation (Currently Limited)
-Agents activate for specific failure scenarios:
-- Currently supports kettleCups corruption detection (2 triggers defined)
-- Triggers only evaluate on kettleTurnOn activity
-- Not generalized for arbitrary state anomalies
-
-### LLM-Powered Recovery
-Recovery decisions are intelligent:
-
-- Analyzes actual corrupted state
-- Considers context and history
-- Suggests specific corrections
-- Provides confidence scoring
-- Fallback to rule-based recovery if LLM fails
-
-### Retry Logic
-Failed activities can be retried:
-
-- Agent fixes state between retries
-- Explicit retry limits prevent infinite loops
-- State persists across retry attempts
-- Workflow can recover and continue
-
----
-
-## Example Workflow (Temporal UI)
-
-A Typical Happy path within the Temporal UI would look like the following:
+Happy path:
 
 <img width="1380" height="560" alt="HappyPath" src="https://github.com/user-attachments/assets/4cd0a0d6-72b3-49cb-b197-5f7f6e7f623e" />
 
-However, when something changes or an error occurs that could potentially stop or paused the workflow, it will look like this:
+Unhappy path (workflow stalled):
 
 <img width="1381" height="318" alt="UnhappyPath" src="https://github.com/user-attachments/assets/0766381a-6471-4fef-a04d-7bb50371ac5b" />
 
-With the addition of the recovery agent, we can see how an unhappy path can be fixed by the agent:
+After agent recovery, workflow resumes:
 
 <img width="1388" height="625" alt="AgentPath" src="https://github.com/user-attachments/assets/a58df373-5a53-4fff-891b-aa6623953253" />
 
-Behind the scenes in this example we can see the quantiy of water (kettleCups) is removed right before kettleTurnOn is executed, this causes an error. We can see here exactly what the agent is detecting and acting upon when an error/trigger arises.
+The error fed to the agent:
 
-This here is the error prompted to the agent, as well as its immediate response:
+<img width="484" height="249" alt="Agent input" src="https://github.com/user-attachments/assets/115cc09e-0bb6-4093-8cf8-cecf5478a88e" />
 
-<img width="484" height="249" alt="input" src="https://github.com/user-attachments/assets/115cc09e-0bb6-4093-8cf8-cecf5478a88e" />
+The agent's response:
 
-After the agent acts upon the problem, this is the result:
+<img width="663" height="267" alt="Agent result" src="https://github.com/user-attachments/assets/dd02178f-1dc5-4462-8300-935618e02a98" />
 
-<img width="663" height="267" alt="result" src="https://github.com/user-attachments/assets/dd02178f-1dc5-4462-8300-935618e02a98" />
-
-This demonstrates the agent’s intelligent analysis and decision-making in response to encountered errors. In this example, a mock error "kettleTurnOn_no_water" is triggered, prompting the agent to investigate and respond. Due to constraints such as using a very small language model, extensive system prompting is required to ensure the agent reacts appropriately to the error. In a larger-scale environment, a more powerful language model could interpret arbitrary error codes and take appropriate action without such heavy prompting.
-
-
+The mock error `kettleTurnOn_no_water` triggers the agent. Because `llama3.1:8b` is a small model, the system prompt is fairly prescriptive to get reliable JSON back. A bigger model would handle arbitrary error codes without as much hand-holding.
 
 ---
 
-## Tech Stack
-Runtime & Orchestration:
+## Demo video
 
-- Temporal Server: Workflow orchestration and history
-- Temporal SDK (TypeScript): Workflow implementation
-- Node.js: Activity and server execution
+Full end-to-end run with sabotage enabled - agent invocation, state fix, and the workflow returning to the happy path, all visible in the Temporal UI.
 
-State Management:
+<video src="demo_videos/agentic_temporal_process_ui.mov" controls width="100%"></video>
 
-- data.json: Persistent state store
-- File-based for simplicity and observability
+> If the video does not render, [download it directly](demo_videos/agentic_temporal_process_ui.mov).
 
-Agent & LLM Frameworks
+---
 
-- LangChain: LLM framework and orchestration
-- Ollama: Local LLM inference (llama3.1:8b)
-- HTTP-based communication on port 11434
+## Workflow comparison
 
-Web Interface:
+### Direct Workflow (no agent)
 
-- Express.js: API server
-- Vite: Frontend development and bundling
-- TypeScript
+```typescript
+try {
+  await kettleFill();
+  await kettleTurnOn();  // throws if kettleCups < 1
+} catch (error) {
+  // workflow fails, needs manual fix
+}
+```
 
-## Project Structure
+Each failure mode needs its own recovery function written by hand. Doesn't scale, and most unhappy paths just result in a failed workflow.
+
+### Agentic Workflow
+
+```typescript
+while (!success && attempts < 3) {
+  try {
+    attempts++;
+    await kettleTurnOn();
+    success = true;
+  } catch (error) {
+    const trigger = evaluateTriggers(state, "kettleTurnOn");
+    if (trigger) {
+      const decision = await invokeAgent(trigger, state);
+      if (decision.confidence > 0.3) {
+        Object.assign(state, decision.newState);
+      }
+    }
+  }
+}
+```
+
+The agent handles recovery generically without needing a bespoke fix function per scenario. The tradeoff is you're now dependent on the LLM giving you back valid JSON with sensible corrections.
+
+---
+
+## Tech stack
+
+| | |
+|---|---|
+| Workflow orchestration | Temporal Server + Temporal SDK (TypeScript) |
+| Runtime | Node.js 18+ |
+| Agent / LLM | LangChain + Ollama (`llama3.1:8b`) |
+| State | `data.json` (file-based) |
+| Servers | Express.js on ports 3000 and 3001 |
+| Frontend | Vite + TypeScript |
+
+---
+
+## Project structure
 
 ```
 src/
  ┣ processes/
- ┃ ┣ direct.ts
- ┃ ┗ manual.ts
+ ┃ ┣ direct.ts              # client-side automation, no Temporal
+ ┃ ┗ manual.ts              # manual step-through
  ┣ temporal_agentic_workflow/
- ┃ ┣ agent.ts
- ┃ ┣ agent_activities.ts
- ┃ ┣ agent_config.ts
- ┃ ┣ agent_memory.ts
- ┃ ┣ agent_server.ts
- ┃ ┣ agent_temporal.ts
- ┃ ┣ agent_worker.ts
- ┃ ┣ agent_workflow.ts
- ┃ ┣ client.ts
- ┃ ┣ direct_temporal.ts
- ┃ ┗ trigger.ts
+ ┃ ┣ agent.ts               # RecoveryAgent + AgentPool
+ ┃ ┣ agent_activities.ts    # Temporal activity wrapper for agent calls
+ ┃ ┣ agent_config.ts        # LangChain chain + LLM setup
+ ┃ ┣ agent_memory.ts        # agent context store
+ ┃ ┣ agent_server.ts        # Express server, port 3001
+ ┃ ┣ agent_temporal.ts      # Temporal client helpers
+ ┃ ┣ agent_worker.ts        # worker registration
+ ┃ ┣ agent_workflow.ts      # main workflow + recovery loop
+ ┃ ┣ client.ts              # workflow starter
+ ┃ ┣ direct_temporal.ts     # shared Temporal utilities
+ ┃ ┗ trigger.ts             # trigger definitions and evaluator
  ┣ temporal_direct_workflow/
  ┃ ┣ client.ts
  ┃ ┣ direct_temporal.ts
- ┃ ┣ self_correct.ts
- ┃ ┣ server.ts
+ ┃ ┣ self_correct.ts        # rule-based self-correction (disabled)
+ ┃ ┣ server.ts              # Express server, port 3000
  ┃ ┣ worker.ts
  ┃ ┗ workflow.ts
- ┣ activities.ts
+ ┣ activities.ts            # all shared Temporal activities
  ┣ index.html
- ┣ sabotage.ts
+ ┣ sabotage.ts              # demo sabotage, toggled by enableSabotage flag
  ┗ script.ts
- ```
+```
+
 ---
 
-## Workflow Comparison
+## Setup
 
-### Direct Workflow (Temporal)
+You'll need Temporal and Ollama running locally before starting.
 
- ```
-// No agent, requires recorvery function for each failure.
-try {
-  await kettleFill();
-  await kettleTurnOn();  // Fails if kettleCups < 1
-} catch (error) {
-  // Workflow fails, manual intervention needed
-}
- ```
-
-Limitations:
-
-- Path Recovery requires dependency checks and recovery functions for each problem potentially encounters (Not Scalable).
-- Unhappy paths most likely lead to workflow failure.
-
-### Agentic Workflow (Temporal)
-
- ```
-// With agent recovery
-try {
-  await kettleFill();
-} catch (error) {
-  // Agent analyzes and fixes corruption
-  await agentRecovery();
-  // Retry kettleTurnOn with corrected state
-}
- ```
- Limitations:
- 
- - Agent Tools
- - Needs powerful model
-
---- 
-
-## Prerequisites & Notes
-
-- **Temporal Server**: Running on `localhost:7233`
-- **Ollama**: Running on `localhost:11434` with `llama3.1:8b` model
 ```bash
-  ollama pull llama3.1:8b
-  ollama serve
+ollama pull llama3.1:8b
+ollama serve
 ```
-- **Node.js**: 18+ with npm
 
-### Architecture Notes
+Temporal runs as part of `start:all` below (dev mode).
 
-Two separate Express servers:
-- **Port 3000**: Direct temporal workflow server (`src/temporal_direct_workflow/server.ts`)
-- **Port 3001**: Agentic temporal workflow server (`src/temporal_agentic_workflow/agent_server.ts`)
-
-Both share the same Temporal backend but use different workers and task queues.
-
---- 
-
-## Setup & Installation
-
-### 1. NPM Installation
-
-```
+```bash
 npm install
+touch data.json
+npm run start:all  # starts Temporal, both workers, both servers
+npm run dev        # frontend on port 5173
 ```
 
-### 2. Start Backend
-```
-<from project directory> touch data.json
-```
-
-### 3. Start Backend
-   
-```
-npm run start:all
-```
-
-### 4. Start Frontend
-
-```
-npm run dev
-```
 ---
 
-## Known Limitations
+## Known limitations
 
-### Agent Recovery
-- Agent only invokes for `kettleTurnOn` activity failures
-- Only 2 triggers defined (`kettleCups_corrupted`, `kettleTurnOn_no_water`)
-- Small LLM model (llama3.1:8b) may produce invalid JSON or hallucinated field names
-- No validation of LLM output before applying corrections
-- Confidence scoring is advisory; corrections apply if confidence > 0.3 regardless of actual validity
+The agent only activates for `kettleTurnOn` failures and only two triggers are defined, so anything else just fails normally. The small LLM is prone to returning malformed JSON or hallucinated field names, and there's no validation of corrections before they're applied - if the LLM says to set some field to a nonsense value, it'll get written to state. Confidence threshold is `> 0.3` which is pretty lenient.
 
-### Critical Issues
-1. **Agent Robustness**: No fallback when LLM returns invalid JSON
-2. **Trigger Coverage**: Only 2 scenarios; most errors unhandled
-3. **Concurrent Workflows**: File-based state breaks with >1 workflow
-4. **State Validation**: Invalid corrections silently ignored
+File-based state (`data.json`) also means running more than one workflow at a time will cause race conditions.
 
-## Future Fixes, Additions & Discoveries
+---
 
-### Add Agent Retry Decision Making 
-If an error occurs in a previous Activity and the agent detects this change, it should have the ability to fix the change that has occured or retry at that certain Activity if the compound error (due to the change) is  too great to just "Fix" like shown in the 'kettleNoWater' demo.
-EDIT: I Have now created a separate repo demostrating the retry logic that will later be added to this project here: [Workflow Resets](https://github.com/76Trystan/workflow-resets)
+## What's next
 
-### Add Human in the loop implementations 
-Allow human intervention to the workflow without agent being triggered or conflicting with human decision.
+**Retry / reset logic** - if an earlier activity caused the compound failure, the agent should be able to reset the workflow back to that point rather than just patching the current state. There's a separate repo exploring this: [Workflow Resets](https://github.com/76Trystan/workflow-resets)
 
-### Real World Use cases 
-Apply this proof of concept to real world use cases and test its capabilities at a larger scale.  
+**Human-in-the-loop** - a way for a human to intervene without conflicting with the agent or the workflow signals.
+
+**Real use cases** - this whole thing is a toy domain. The interesting question is how well the recovery pattern holds up when the state space is more complex and the errors are less predictable.
 
 ---
