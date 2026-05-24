@@ -146,9 +146,20 @@ app.post('/api/workflow/:workflowId/log-activity', async (req, res) => {
 app.get('/api/workflow/:workflowId/progress', async (req, res) => {
   try {
     const { workflowId } = req.params;
-    const completedFunctions = workflowActivities.get(workflowId) || [];
+    const handle = workflowHandles.get(workflowId);
     const state = workflowState.get(workflowId) || {};
-    res.json({ completedFunctions, state });
+
+    if (!handle) {
+      return res.json({ completedFunctions: [], state });
+    }
+
+    try {
+      const completedFunctions = await handle.query('getCompletedFunctions');
+      res.json({ completedFunctions, state });
+    } catch {
+      // Workflow may have just completed and handle is stale
+      res.json({ completedFunctions: [], state });
+    }
   } catch (error) {
     res.status(500).json({ error: (error as Error).message });
   }

@@ -1,6 +1,7 @@
 import {
   proxyActivities,
   defineSignal,
+  defineQuery,
   setHandler,
   sleep,
   log,
@@ -34,6 +35,7 @@ export const updateStateSignal = defineSignal<any>('updateState');
 export const pauseSignal = defineSignal('pause');
 export const resumeSignal = defineSignal('resume');
 export const stopSignal = defineSignal('stop');
+export const getCompletedFunctionsQuery = defineQuery<string[]>('getCompletedFunctions');
 
 export interface TeaState {
   hotWater: number;
@@ -89,6 +91,8 @@ export async function teaMakingWorkflow(input: WorkflowInput): Promise<WorkflowO
     Object.assign(state, newState);
     log.info(`State updated from UI: ${JSON.stringify(newState)}`);
   });
+
+  setHandler(getCompletedFunctionsQuery, () => completedFunctions);
 
   const executeStep = async (
     stepName: string,

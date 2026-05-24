@@ -143,7 +143,7 @@ export class AgenticTemporalProcessHandler {
 
           // Fetch data from API to sync UI state
           try {
-            const response = await fetch('http://localhost:3000/api/tea');
+            const response = await fetch('http://localhost:3001/api/tea');
             if (response.ok) {
               const data = await response.json();
               if (data.teaState) {
